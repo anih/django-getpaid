@@ -84,7 +84,6 @@ class PaymentFactory(models.Model, AbstractMixin):
         Always change payment status via this method. Otherwise the signal
         will not be emitted.
         """
-        print self.status, new_status
         if self.status != new_status:
             # do anything only when status is really changed
             old_status = self.status
