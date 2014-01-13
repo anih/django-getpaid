@@ -48,11 +48,14 @@ class OnlineView(View):
         else:
             flag = "Invalid form. (%s)" % form.errors
 
-        if ipn_obj is None:
-            ipn_obj = PaymentPaypal()
-        ipn_obj.initialize(request)
+        if not flag:
+            if ipn_obj is None:
+                ipn_obj = PaymentPaypal()
+            ipn_obj.initialize(request)
 
-        status = PaymentProcessor.online(ipn_obj, flag, form, secure=request.GET['secret'] if request.is_secure() and 'secret' in request.GET else None)
+            status = PaymentProcessor.online(ipn_obj, flag, form, secure=request.GET['secret'] if request.is_secure() and 'secret' in request.GET else None)
+        else:
+            status = flag
         return HttpResponse(status)
 
 class SuccessView(DetailView):
