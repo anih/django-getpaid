@@ -134,5 +134,7 @@ class PaymentProcessor(PaymentProcessorBase):
         params['cancel_return'] = self.get_return_url('failure', self.payment.pk)
         params['notify_url'] = self.get_return_url('online')
         logger.debug('sending payment to paypal: %s' % str(params))
-
-        return self._get_gateway_url, 'POST', params
+        for key in params.keys():
+            params[key] = unicode(params[key]).encode('utf-8')
+        return self._get_gateway_url + '?' + urllib.urlencode(params), 'GET', {}
+        #return self._get_gateway_url, 'POST', params
