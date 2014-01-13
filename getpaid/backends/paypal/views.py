@@ -39,7 +39,7 @@ class OnlineView(View):
             logger.error('Got message for non existing Payment, %s' % str(data))
             return 'PAYMENT ERR'
 
-        form = PayPalIPNForm(data, instance=payment.paymentpaypal)
+        form = PayPalIPNForm(data)
         if form.is_valid():
             try:
                 ipn_obj = form.save(commit=False)
