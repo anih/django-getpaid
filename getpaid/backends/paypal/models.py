@@ -271,7 +271,7 @@ class PaymentPaypalFactory(models.Model, AbstractMixin):
 PaymentPaypal = None
 
 def build_models(payment_class):
-    global PaymentComment
+    global PaymentPaypal
     class PaymentPaypal(PaymentPaypalFactory.construct(payment_class)):
         pass
     return [PaymentPaypal]
