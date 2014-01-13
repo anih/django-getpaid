@@ -32,13 +32,6 @@ class OnlineView(View):
         for date_field in date_fields:
             if data.get(date_field) == 'N/A':
                 del data[date_field]
-
-        try:
-            payment = Payment.objects.get(pk=ipn_obj.custom)
-        except (ValueError, Payment.DoesNotExist):
-            logger.error('Got message for non existing Payment, %s' % str(params))
-            return 'PAYMENT ERR'
-
         form = PayPalIPNForm(data, instance=payment.paypal_payment)
         if form.is_valid():
             try:
@@ -47,6 +40,12 @@ class OnlineView(View):
                 flag = "Exception while processing. (%s)" % e
         else:
             flag = "Invalid form. (%s)" % form.errors
+
+        try:
+            payment = Payment.objects.get(pk=ipn_obj.custom)
+        except (ValueError, Payment.DoesNotExist):
+            logger.error('Got message for non existing Payment, %s' % str(params))
+            return 'PAYMENT ERR'
 
         if not flag:
             if ipn_obj is None:
