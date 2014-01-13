@@ -230,7 +230,7 @@ class PaymentPaypalFactory(models.Model, AbstractMixin):
     def initialize(self, request):
         """Store the data we'll need to make the postback from the request object."""
         self.query = getattr(request, request.method).urlencode()
-        #self.payment_id = self.custom
+        self.payment_id = self.custom
 
     def _postback(self):
         """Perform PayPal Postback validation."""
