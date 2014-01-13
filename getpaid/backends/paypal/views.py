@@ -36,7 +36,7 @@ class OnlineView(View):
         try:
             payment = Payment.objects.get(pk=data['custom'])
         except (ValueError, Payment.DoesNotExist):
-            logger.error('Got message for non existing Payment, %s' % str(params))
+            logger.error('Got message for non existing Payment, %s' % str(data))
             return 'PAYMENT ERR'
 
         form = PayPalIPNForm(data, instance=payment.paymentpaypal)
