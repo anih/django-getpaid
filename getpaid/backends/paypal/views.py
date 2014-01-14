@@ -37,16 +37,17 @@ class OnlineView(View):
             payment = Payment.objects.get(pk=data['custom'])
         except (ValueError, Payment.DoesNotExist):
             logger.error('Got message for non existing Payment, %s' % str(data))
-            return 'PAYMENT ERR'
+            flag =  'PAYMENT ERR'
 
-        form = PayPalIPNForm(data)
-        if form.is_valid():
-            try:
-                ipn_obj = form.save(commit=False)
-            except Exception, e:
-                flag = "Exception while processing. (%s)" % e
-        else:
-            flag = "Invalid form. (%s)" % form.errors
+        if not flag:
+            form = PayPalIPNForm(data)
+            if form.is_valid():
+                try:
+                    ipn_obj = form.save(commit=False)
+                except Exception, e:
+                    flag = "Exception while processing. (%s)" % e
+            else:
+                flag = "Invalid form. (%s)" % form.errors
 
         if not flag:
             if ipn_obj is None:
