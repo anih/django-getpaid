@@ -41,7 +41,7 @@ class OnlineView(View):
 
         if not flag:
             data.update({'payment':data['custom']})
-            if payment.paymentpaypal:
+            if hasattr(payment,'paymentpaypal'):
                 form = PayPalIPNForm(data, instance=payment.paymentpaypal)
             else:
                 form = PayPalIPNForm(data)
