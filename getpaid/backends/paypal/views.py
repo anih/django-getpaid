@@ -47,7 +47,7 @@ class OnlineView(View):
                 except Exception, e:
                     flag = "Exception while processing. (%s)" % e
             else:
-                flag = "Invalid form. (%s)" % form.errors
+                flag = "Invalid form. (%s)" % form.get_global_errors()
 
         if not flag:
             if ipn_obj is None:

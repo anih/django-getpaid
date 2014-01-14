@@ -21,6 +21,10 @@ class PayPalStandardBaseForm(forms.ModelForm):
     subscr_date = forms.DateTimeField(required=False, input_formats=PAYPAL_DATE_FORMAT)
     subscr_effective = forms.DateTimeField(required=False, input_formats=PAYPAL_DATE_FORMAT)
 
+    def get_global_errors(self):
+        errors = dict(self.errors)
+        return list(errors.get("__all__", []))
+
 class PayPalIPNForm(PayPalStandardBaseForm):
     """
     Form used to receive and record PayPal IPN notifications.
