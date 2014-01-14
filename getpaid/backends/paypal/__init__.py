@@ -106,9 +106,10 @@ class PaymentProcessor(PaymentProcessorBase):
             }
 
         signals.user_data_query.send(sender=None, order=self.payment.order, user_data=user_data)
-
+        business = PaymentProcessor.get_backend_setting('business') if not PaymentProcessor.get_backend_setting('test') \
+                       else PaymentProcessor.get_backend_setting('test_business')
         params = {
-            'business': PaymentProcessor.get_backend_setting('business'),
+            'business': business,
             'cmd': "_xclick",
             'charset': "utf-8",
             'landing_page': request.REQUEST.get('landing_page', ''),
