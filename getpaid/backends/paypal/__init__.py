@@ -111,7 +111,7 @@ class PaymentProcessor(PaymentProcessorBase):
             'business': PaymentProcessor.get_backend_setting('business'),
             'cmd': "_xclick",
             'charset': "utf-8",
-            'landing_page': '',
+            'landing_page': request.get('landing_page', ''),
         }
 
         #transaction data
