@@ -227,7 +227,7 @@ class PaymentPaypalFactory(models.Model, AbstractMixin):
         # else:
         #     return backends_settings.get('POSTBACK_ENDPOINT')
         from getpaid.backends.paypal import PaymentProcessor
-        return '%s' % PaymentProcessor._get_gateway_url
+        return PaymentProcessor(payment=self.payment)._get_gateway_url
 
     def initialize(self, request):
         """Store the data we'll need to make the postback from the request object."""
