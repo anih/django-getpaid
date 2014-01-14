@@ -4,6 +4,8 @@ from getpaid.backends.paypal import paypalTransactionStatus as pts
 from django.db import models
 from django.conf import settings
 import urllib2
+import logging
+logger = logging.getLogger('getpaid.backends.paypal')
 
 class PaymentPaypalFactory(models.Model, AbstractMixin):
     format = u"<IPN: %s %s>"
@@ -234,6 +236,7 @@ class PaymentPaypalFactory(models.Model, AbstractMixin):
 
     def _postback(self):
         """Perform PayPal Postback validation."""
+        logger.debug('seinding postback to %s%s' %(self.get_endpoint(), "cmd=_notify-validate&%s" % self.query))
         return urllib2.urlopen(self.get_endpoint(), "cmd=_notify-validate&%s" % self.query).read()
 
     def _verify_postback(self):
