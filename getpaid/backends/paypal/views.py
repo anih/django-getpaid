@@ -40,7 +40,7 @@ class OnlineView(View):
             flag =  'PAYMENT ERR'
 
         if not flag:
-            form = PayPalIPNForm(data)
+            form = PayPalIPNForm(data, initial={'payment':data['custom']})
             if form.is_valid():
                 try:
                     ipn_obj = form.save(commit=False)
