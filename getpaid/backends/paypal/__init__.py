@@ -49,7 +49,7 @@ class PaymentProcessor(PaymentProcessorBase):
             if secure:
                 ipn_obj.verify_secret(form, secure)
             else:
-                ipn_obj.verify()
+                ipn_obj.verify(receiver_email=PaymentProcessor.get_backend_setting('business'))
 
         #if verification ended in error, return it:
         if ipn_obj.flag:
