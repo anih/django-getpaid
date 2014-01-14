@@ -51,8 +51,10 @@ class PaymentProcessor(PaymentProcessorBase):
             else:
                 ipn_obj.verify()
 
+        #if verification ended in error, return it:
         if ipn_obj.flag:
-            return ipn_obj.flag
+            return ipn_obj.flag_info
+
         payment = ipn_obj.payment
         payment.external_id = ipn_obj.txn_id
         payment.description = ipn_obj.item_name
