@@ -56,6 +56,7 @@ class OnlineView(View):
             status = PaymentProcessor.online(ipn_obj, flag, form, secure=request.GET['secret'] if request.is_secure() and 'secret' in request.GET else None)
         else:
             status = flag
+        logger.debug( 'paypal payment status: %s' % status)
         return HttpResponse(status)
 
 class SuccessView(DetailView):
