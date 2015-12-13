@@ -7,7 +7,6 @@ from django.conf import settings
 from django.utils import six
 from django.core.urlresolvers import reverse
 from django.utils.six.moves.urllib.parse import parse_qsl
-from django.contrib.sites.models import Site
 import django
 
 
@@ -100,6 +99,7 @@ def get_domain(request=None):
     if (hasattr(settings, 'GETPAID_SITE_DOMAIN') and
             settings.GETPAID_SITE_DOMAIN):
         return settings.GETPAID_SITE_DOMAIN
+    from django.contrib.sites.models import Site
     if django.VERSION[:2] >= (1, 8):
         site = Site.objects.get_current(request=request)
     else:
