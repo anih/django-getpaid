@@ -7,6 +7,7 @@ from django.conf import settings
 from django.utils import six
 from django.core.urlresolvers import reverse
 from django.utils.six.moves.urllib.parse import parse_qsl
+from django.contrib.sites.models import Site
 import django
 
 
@@ -99,10 +100,42 @@ def get_domain(request=None):
     if (hasattr(settings, 'GETPAID_SITE_DOMAIN') and
             settings.GETPAID_SITE_DOMAIN):
         return settings.GETPAID_SITE_DOMAIN
-    from django.contrib.sites.models import Site
     if django.VERSION[:2] >= (1, 8):
         site = Site.objects.get_current(request=request)
     else:
         site = Site.objects.get_current()
 
     return site.domain
+
+
+def register_to_payment(order_class, **kwargs):
+    """
+    A function for registering unaware order class to ``getpaid``. This will
+    generate a ``Payment`` model class that will store payments with
+    ForeignKey to original order class
+    This also will build a model class for every enabled backend.
+    """
+    from .models import PaymentFactory, PaymentManager
+    from django.utils.translation import ugettext_lazy as _
+
+    global Payment
+    global Order
+
+    class Payment(PaymentFactory.construct(order=order_class, **kwargs)):
+        objects = PaymentManager()
+
+        class Meta:
+            ordering = ('-created_on',)
+            verbose_name = _("Payment")
+            verbose_name_plural = _("Payments")
+
+    Order = order_class
+
+    # Now build models for backends
+    from django.apps import apps
+
+    backend_models_modules = import_backend_modules('models')
+    for backend_name, models in backend_models_modules.items():
+        for model in models.build_models(Payment):
+            apps.register_model(backend_name, model)
+    return Payment
