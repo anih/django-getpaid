@@ -124,8 +124,7 @@ class PaymentFactory(models.Model, AbstractMixin):
         self.change_status('failed')
 
 
-from django.db.models.loading import cache as app_cache, register_models
-#from utils import import_backend_modules
+from django.apps import apps
 
 
 def register_to_payment(order_class, **kwargs):
@@ -153,5 +152,5 @@ def register_to_payment(order_class, **kwargs):
 
     backend_models_modules = import_backend_modules('models')
     for backend_name, models in backend_models_modules.items():
-        app_cache.register_models(backend_name, *models.build_models(Payment))
+        apps.register_models(backend_name, *models.build_models(Payment))
     return Payment
