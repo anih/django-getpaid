@@ -9,7 +9,7 @@ from django.utils.encoding import force_text
 
 from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext as _
-from getpaid.models import Order
+from getpaid.utils import Order
 from .utils import get_backend_choices, import_name
 
 
