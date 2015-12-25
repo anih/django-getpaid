@@ -1,7 +1,7 @@
-from django.conf.urls import patterns, url, include
-from getpaid.views import NewPaymentView, FallbackView
-from getpaid.utils import import_backend_modules
+from django.conf.urls import url, include
 
+from getpaid.utils import import_backend_modules
+from getpaid.views import NewPaymentView, FallbackView
 
 urlpatterns = [
     url(r'^new/payment/(?P<currency>[A-Z]{3})/$', NewPaymentView.as_view(), name='getpaid-new-payment'),
