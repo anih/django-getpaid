@@ -3,7 +3,7 @@ from django.shortcuts import get_object_or_404
 from django.views.generic.edit import FormView
 from . import PaymentProcessor
 from .forms import PaymillForm
-from getpaid.utils import Payment
+from getpaid.models import Payment
 import pymill
 
 

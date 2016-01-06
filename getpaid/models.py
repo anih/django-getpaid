@@ -1,5 +1,7 @@
 import sys
 from datetime import datetime
+
+from django.apps import apps
 from django.db import models
 from django.utils import six
 from django.utils.timezone import utc
@@ -7,21 +9,21 @@ from django.utils.translation import ugettext_lazy as _
 from django.utils.encoding import python_2_unicode_compatible
 from .abstract_mixin import AbstractMixin
 from getpaid import signals
+from .utils import import_backend_modules
 from django.conf import settings
 
 if six.PY3:
     unicode = str
 
-
 PAYMENT_STATUS_CHOICES = (
-        ('new', _("new")),
-        ('in_progress', _("in progress")),
-        ('accepted_for_proc', _("accepted for processing")),
-        ('partially_paid', _("partially paid")),
-        ('paid', _("paid")),
-        ('cancelled', _("cancelled")),
-        ('failed', _("failed")),
-        )
+    ('new', _("new")),
+    ('in_progress', _("in progress")),
+    ('accepted_for_proc', _("accepted for processing")),
+    ('partially_paid', _("partially paid")),
+    ('paid', _("paid")),
+    ('cancelled', _("cancelled")),
+    ('failed', _("failed")),
+)
 
 
 class PaymentManager(models.Manager):
@@ -60,7 +62,6 @@ class PaymentFactory(models.Model, AbstractMixin):
         """
             Builds Payment object based on given Order instance
         """
-        from .utils import Payment
         payment = Payment()
         payment.order = order
         payment.backend = backend
@@ -90,8 +91,8 @@ class PaymentFactory(models.Model, AbstractMixin):
             self.status = new_status
             self.save()
             signals.payment_status_changed.send(
-                sender=type(self), instance=self,
-                old_status=old_status, new_status=new_status
+                    sender=type(self), instance=self,
+                    old_status=old_status, new_status=new_status
             )
 
     def on_success(self, amount=None):
@@ -99,7 +100,6 @@ class PaymentFactory(models.Model, AbstractMixin):
         Called when payment receives successful balance income. It defaults to
         complete payment, but can optionally accept received amount as a parameter
         to handle partial payments.
-
         Returns boolean value if payment was fully paid
         """
         if getattr(settings, 'USE_TZ', False):
@@ -122,3 +122,32 @@ class PaymentFactory(models.Model, AbstractMixin):
         Called when payment was failed
         """
         self.change_status('failed')
+
+
+def register_to_payment(order_class, **kwargs):
+    """
+    A function for registering unaware order class to ``getpaid``. This will
+    generate a ``Payment`` model class that will store payments with
+    ForeignKey to original order class
+    This also will build a model class for every enabled backend.
+    """
+    global Payment
+    global Order
+
+    class Payment(PaymentFactory.construct(order=order_class, **kwargs)):
+        objects = PaymentManager()
+
+        class Meta:
+            ordering = ('-created_on',)
+            verbose_name = _("Payment")
+            verbose_name_plural = _("Payments")
+
+    Order = order_class
+
+    # Now build models for backends
+
+    backend_models_modules = import_backend_modules('models')
+    for backend_name, models_module in backend_models_modules.items():
+        for model in models_module.build_models(Payment):
+            apps.register_model(backend_name, model)
+    return Payment
