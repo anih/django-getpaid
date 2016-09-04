@@ -1,16 +1,15 @@
 import datetime
-from decimal import Decimal
-from django.contrib.sites.models import Site
-from django.core.urlresolvers import reverse
-import hashlib
 import logging
 import urllib
-import urllib2
+from decimal import Decimal
+
+from django.core.urlresolvers import reverse
 from django.utils.timezone import utc
 from django.utils.translation import ugettext_lazy as _
-import time
+
 from getpaid import signals
 from getpaid.backends import PaymentProcessorBase
+from utils import get_domain
 
 logger = logging.getLogger('getpaid.backends.paypal')
 
@@ -30,10 +29,11 @@ class paypalTransactionStatus:
     ST_PP_UNCLAIMED = 'Unclaimed'
     ST_PP_UNCLEARED = 'Uncleared'
 
+
 class PaymentProcessor(PaymentProcessorBase):
     BACKEND = 'getpaid.backends.paypal'
     BACKEND_NAME = _('paypal')
-    BACKEND_ACCEPTED_CURRENCY = ('PLN','USD','EUR', 'GPB' )
+    BACKEND_ACCEPTED_CURRENCY = ('PLN', 'USD', 'EUR', 'GPB')
     BACKEND_LOGO_URL = 'getpaid/backends/paypal/paypal_logo.png'
     # API Endpoints.
     POSTBACK_ENDPOINT = "https://www.paypal.com/cgi-bin/webscr"
@@ -49,11 +49,12 @@ class PaymentProcessor(PaymentProcessorBase):
             if secure:
                 ipn_obj.verify_secret(form, secure)
             else:
-                business = PaymentProcessor.get_backend_setting('business') if not PaymentProcessor.get_backend_setting('test') \
-                       else PaymentProcessor.get_backend_setting('test_business')
+                business = PaymentProcessor.get_backend_setting('business') if not PaymentProcessor.get_backend_setting(
+                    'test') \
+                    else PaymentProcessor.get_backend_setting('test_business')
                 ipn_obj.verify(receiver_email=business)
 
-        #if verification ended in error, return it:
+        # if verification ended in error, return it:
         if ipn_obj.flag:
             return ipn_obj.flag_info
 
@@ -69,9 +70,9 @@ class PaymentProcessor(PaymentProcessorBase):
                 payment.change_status('paid')
             else:
                 payment.change_status('partially_paid')
-        elif ipn_obj.payment_status in (    paypalTransactionStatus.ST_PP_CANCELLED,
-                            paypalTransactionStatus.ST_PP_DENIED,
-                            paypalTransactionStatus.ST_PP_REFUSED):
+        elif ipn_obj.payment_status in (paypalTransactionStatus.ST_PP_CANCELLED,
+                                        paypalTransactionStatus.ST_PP_DENIED,
+                                        paypalTransactionStatus.ST_PP_REFUSED):
             logger.debug('paypal: status FAILED')
             payment.change_status('failed')
         else:
@@ -80,19 +81,18 @@ class PaymentProcessor(PaymentProcessorBase):
         return 'OK'
 
     def get_return_url(self, type, pk=None):
-        kwargs = {'pk' : pk} if pk else {}
+        kwargs = {'pk': pk} if pk else {}
         url = reverse('getpaid-paypal-%s' % type, kwargs=kwargs)
-        current_site = Site.objects.get_current()
+        domain = get_domain()
         if PaymentProcessor.get_backend_setting('force_ssl', False):
-            return 'https://%s%s' % (current_site.domain, url)
+            return 'https://%s%s' % (domain, url)
         else:
-            return 'http://%s%s' % (current_site.domain, url)
+            return 'http://%s%s' % (domain, url)
 
     @property
     def _get_gateway_url(cls):
         test = PaymentProcessor.get_backend_setting('test', True)
         return cls.SANDBOX_POSTBACK_ENDPOINT if test else cls.POSTBACK_ENDPOINT
-
 
     def get_gateway_url(self, request):
         """
@@ -105,11 +105,12 @@ class PaymentProcessor(PaymentProcessorBase):
             'lang': None,
             'first_name': None,
             'last_name': None,
-            }
+        }
 
         signals.user_data_query.send(sender=None, order=self.payment.order, user_data=user_data)
-        business = PaymentProcessor.get_backend_setting('business') if not PaymentProcessor.get_backend_setting('test') \
-                       else PaymentProcessor.get_backend_setting('test_business')
+        business = PaymentProcessor.get_backend_setting('business') if not PaymentProcessor.get_backend_setting(
+            'test') \
+            else PaymentProcessor.get_backend_setting('test_business')
         params = {
             'business': business,
             'cmd': "_xclick",
@@ -117,24 +118,24 @@ class PaymentProcessor(PaymentProcessorBase):
             'landing_page': request.REQUEST.get('landing_page', ''),
         }
 
-        #transaction data
+        # transaction data
         # Here we put payment.pk as we can get order through payment model
         params['custom'] = self.payment.pk
         # total amount
         params['amount'] = self.payment.amount
-        #currency
+        # currency
         params['currency_code'] = self.payment.currency.upper()
-        #description
+        # description
         params['item_name'] = self.get_order_description(self.payment, self.payment.order)
-        #payment methods
+        # payment methods
         params['item_number'] = None
-        #fast checkout
+        # fast checkout
         params['payment_type'] = 'WLT'
-        #quantity
+        # quantity
         params['quantity'] = 1
 
-        #urls
-        #params['logo_url'] = PaymentProcessor.get_backend_setting('logo_url);
+        # urls
+        # params['logo_url'] = PaymentProcessor.get_backend_setting('logo_url);
         params['return_url'] = self.get_return_url('success', self.payment.pk)
         params['cancel_return'] = self.get_return_url('failure', self.payment.pk)
         params['notify_url'] = self.get_return_url('online')
@@ -142,4 +143,4 @@ class PaymentProcessor(PaymentProcessorBase):
         for key in params.keys():
             params[key] = unicode(params[key]).encode('utf-8')
         return self._get_gateway_url + '?' + urllib.urlencode(params), 'GET', {}
-        #return self._get_gateway_url, 'POST', params
+        # return self._get_gateway_url, 'POST', params
