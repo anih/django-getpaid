@@ -9,7 +9,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from getpaid import signals
 from getpaid.backends import PaymentProcessorBase
-from utils import get_domain
+from getpaid.utils import get_domain
 
 logger = logging.getLogger('getpaid.backends.paypal')
 
