@@ -160,7 +160,6 @@ class PaymentProcessor(PaymentProcessorBase):
             'getpaid-przelewy24-success', kwargs={'pk': self.payment.pk})
         params['p24_return_url_error'] = ('https://' if use_ssl else 'http://') + current_site + reverse(
             'getpaid-przelewy24-failure', kwargs={'pk': self.payment.pk})
-        params['p24_url_status']
         if params['p24_email'] is None:
             raise ImproperlyConfigured(
                 '%s requires filling `email` field for payment (you need to handle `user_data_query` signal)' % self.BACKEND)
