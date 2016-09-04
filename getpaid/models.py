@@ -62,6 +62,7 @@ class PaymentFactory(models.Model, AbstractMixin):
         """
             Builds Payment object based on given Order instance
         """
+        from .utils import Payment
         payment = Payment()
         payment.order = order
         payment.backend = backend
