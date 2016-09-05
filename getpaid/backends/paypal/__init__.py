@@ -115,7 +115,6 @@ class PaymentProcessor(PaymentProcessorBase):
             'business': business,
             'cmd': "_xclick",
             'charset': "utf-8",
-            'landing_page': request.REQUEST.get('landing_page', ''),
         }
 
         # transaction data

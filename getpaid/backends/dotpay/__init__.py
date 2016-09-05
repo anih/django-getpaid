@@ -143,11 +143,6 @@ class PaymentProcessor(PaymentProcessorBase):
         if PaymentProcessor.get_backend_setting('tax', False):
             params['tax'] = 1
 
-        # payment channel support
-        if 'channel' in request.REQUEST:
-            params['channel'] = request.REQUEST.get('channel', 0)
-            params['ch_lock'] = PaymentProcessor.get_backend_setting('check_lock', 1)
-
         gateway_url = PaymentProcessor.get_backend_setting('gateway_url', self._GATEWAY_URL)
 
         if PaymentProcessor.get_backend_setting('method', 'get').lower() == 'post':
