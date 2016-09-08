@@ -114,32 +114,22 @@ class PaymentProcessor(PaymentProcessorBase):
         params = {
             'business': business,
             'cmd': "_xclick",
-            'charset': "utf-8",
+            'charset': "UTF-8",
+            'custom': self.payment.pk,
+            'amount': self.payment.amount,
+            'currency_code': self.payment.currency.upper(),
+            'item_name': self.get_order_description(self.payment, self.payment.order),
+            'item_number': None,
+            'payment_type': 'WLT',
+            'quantity': 1,
+            'return': self.get_return_url('success', self.payment.pk),
+            'cancel_return': self.get_return_url('failure', self.payment.pk),
+            'notify_url': self.get_return_url('online')
         }
 
-        # transaction data
-        # Here we put payment.pk as we can get order through payment model
-        params['custom'] = self.payment.pk
-        # total amount
-        params['amount'] = self.payment.amount
-        # currency
-        params['currency_code'] = self.payment.currency.upper()
-        # description
-        params['item_name'] = self.get_order_description(self.payment, self.payment.order)
-        # payment methods
-        params['item_number'] = None
-        # fast checkout
-        params['payment_type'] = 'WLT'
-        # quantity
-        params['quantity'] = 1
-
-        # urls
         # params['logo_url'] = PaymentProcessor.get_backend_setting('logo_url);
-        params['return_url'] = self.get_return_url('success', self.payment.pk)
-        params['cancel_return'] = self.get_return_url('failure', self.payment.pk)
-        params['notify_url'] = self.get_return_url('online')
         logger.debug('sending payment to paypal: %s' % str(params))
-        for key in params.keys():
-            params[key] = unicode(params[key]).encode('utf-8')
+        # for key in params.keys():
+        #     params[key] = unicode(params[key]).encode('utf-8')
         return self._get_gateway_url + '?' + urllib.urlencode(params), 'GET', {}
         # return self._get_gateway_url, 'POST', params
