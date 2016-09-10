@@ -6,5 +6,6 @@ from django.apps import AppConfig
 
 
 class GetPaidPaypalAppConfig(AppConfig):
+    name = 'getpaid.backends.paypal'
     label = 'getpaid_paypal'
     verbose_name = "GetPaid PayPal backend"
