@@ -6,10 +6,6 @@ from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.utils.timezone import utc
 from django.utils.translation import ugettext_lazy as _
-from paypal.standard.conf import SANDBOX_POSTBACK_ENDPOINT, POSTBACK_ENDPOINT
-from paypal.standard.forms import PayPalPaymentsForm
-from paypal.standard.models import ST_PP_COMPLETED, ST_PP_DENIED, ST_PP_REFUSED, ST_PP_CANCELLED
-from paypal.standard.ipn.signals import valid_ipn_received
 
 from getpaid import signals
 from getpaid.backends import PaymentProcessorBase
@@ -26,8 +22,10 @@ class PaymentProcessor(PaymentProcessorBase):
 
     @staticmethod
     def ipn_signal_handler(sender, **kwargs):
-        ipn_obj = sender
+        from paypal.standard.models import ST_PP_COMPLETED, ST_PP_DENIED, ST_PP_REFUSED, ST_PP_CANCELLED
         from getpaid.models import Payment
+
+        ipn_obj = sender
         payment = Payment.objects.get(pk=ipn_obj.custom)
         payment.external_id = ipn_obj.txn_id
         payment.description = ipn_obj.item_name
@@ -71,6 +69,7 @@ class PaymentProcessor(PaymentProcessorBase):
 
     @property
     def _get_gateway_url(self):
+        from paypal.standard.conf import SANDBOX_POSTBACK_ENDPOINT, POSTBACK_ENDPOINT
         return SANDBOX_POSTBACK_ENDPOINT if self.is_test_mode() else POSTBACK_ENDPOINT
 
     @staticmethod
@@ -108,6 +107,7 @@ class PaymentProcessor(PaymentProcessorBase):
         return self._get_gateway_url, 'POST', paypal_dict
 
     def get_form(self, post_data):
+        from paypal.standard.forms import PayPalPaymentsForm
         return PayPalPaymentsForm(initial=post_data)
 
 
@@ -131,5 +131,7 @@ class PaymentProcessor(PaymentProcessorBase):
 #         if ipn_obj.custom == "Upgrade all users!":
 #             Users.objects.update(paid=True)
 #     else:
+
+from paypal.standard.ipn.signals import valid_ipn_received
 
 valid_ipn_received.connect(PaymentProcessor.ipn_signal_handler)
