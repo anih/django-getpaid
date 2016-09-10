@@ -6,7 +6,6 @@ from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.utils.timezone import utc
 from django.utils.translation import ugettext_lazy as _
-from getpaid.models import Payment
 from paypal.standard.conf import SANDBOX_POSTBACK_ENDPOINT, POSTBACK_ENDPOINT
 from paypal.standard.forms import PayPalPaymentsForm
 from paypal.standard.models import ST_PP_COMPLETED, ST_PP_DENIED, ST_PP_REFUSED, ST_PP_CANCELLED
@@ -28,6 +27,7 @@ class PaymentProcessor(PaymentProcessorBase):
     @staticmethod
     def ipn_signal_handler(sender, **kwargs):
         ipn_obj = sender
+        from getpaid.models import Payment
         payment = Payment.objects.get(pk=ipn_obj.custom)
         payment.external_id = ipn_obj.txn_id
         payment.description = ipn_obj.item_name
