@@ -11,3 +11,4 @@ yanc
 lxml
 requests
 factory_boy
+django-paypal
