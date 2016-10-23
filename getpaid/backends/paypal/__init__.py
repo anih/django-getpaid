@@ -52,7 +52,7 @@ class PaymentProcessor(PaymentProcessorBase):
             payment.save()
             payment.change_status('failed')
         else:
-            logger.error('paypal: unknown status %d' % ipn_obj.payment_status)
+            logger.error('paypal: unknown status %s' % ipn_obj.payment_status)
 
     def get_return_url(self, type, pk=None):
         kwargs = {'pk': pk} if pk else {}
