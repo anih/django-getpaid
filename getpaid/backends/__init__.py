@@ -1,9 +1,8 @@
 from django.conf import settings
-from django.core.exceptions import ImproperlyConfigured
 from django.template.base import Template
 from django.template.context import Context
 from django.utils import six
-from getpaid.utils import get_backend_settings
+from getpaid.utils import import_settings_module
 
 
 class PaymentProcessorBase(object):
@@ -61,7 +60,7 @@ class PaymentProcessorBase(object):
         else:
             return six.text_type(order)
 
-    def get_gateway_url(self, request):
+    def get_gateway_url(self, request, settings_object):
         """
         Should return a tuple with the first item being the URL that redirects to payment Gateway
         Second item should be if the request is made via GET or POST. Third item are the parameters
@@ -79,18 +78,12 @@ class PaymentProcessorBase(object):
         return PaymentHiddenInputsPostForm(items=post_data)
 
     @classmethod
-    def get_backend_setting(cls, name, default=None):
+    def get_settings_object(cls, request):
         """
         Reads ``name`` setting from backend settings dictionary.
 
         If `default` value is omitted, raises ``ImproperlyConfigured`` when
         setting ``name`` is not available.
         """
-        backend_settings = get_backend_settings(cls.BACKEND)
-        if default is not None:
-            return backend_settings.get(name, default)
-        else:
-            try:
-                return backend_settings[name]
-            except KeyError:
-                raise ImproperlyConfigured("getpaid '%s' requires backend '%s' setting" % (cls.BACKEND, name))
+        backend_settings = import_settings_module()
+        return backend_settings.get_settings(cls.BACKEND, request)

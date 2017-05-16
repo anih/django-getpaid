@@ -1,7 +1,9 @@
+import json
 import sys
 from datetime import datetime
 
 from django.apps import apps
+from django.core.exceptions import ImproperlyConfigured
 from django.db import models
 from django.utils import six
 from django.utils.timezone import utc
@@ -9,7 +11,7 @@ from django.utils.translation import ugettext_lazy as _
 from django.utils.encoding import python_2_unicode_compatible
 from .abstract_mixin import AbstractMixin
 from getpaid import signals
-from .utils import import_backend_modules
+from .utils import import_backend_modules, import_settings_module
 from django.conf import settings
 
 if six.PY3:
@@ -123,6 +125,9 @@ class PaymentFactory(models.Model, AbstractMixin):
         """
         self.change_status('failed')
 
+    def get_settings_object(self):
+        return self.payment_configuration
+
 
 def register_to_payment(order_class, **kwargs):
     """
@@ -136,6 +141,7 @@ def register_to_payment(order_class, **kwargs):
 
     class Payment(PaymentFactory.construct(order=order_class, **kwargs)):
         objects = PaymentManager()
+        payment_configuration = models.ForeignKey(import_settings_module())
 
         class Meta:
             ordering = ('-created_on',)
@@ -151,3 +157,26 @@ def register_to_payment(order_class, **kwargs):
         for model in models_module.build_models(Payment):
             apps.register_model(backend_name, model)
     return Payment
+
+
+class PaymentConfigurationBase(models.Model):
+    class Meta:
+        abstract = True
+
+    backend = models.CharField(max_length=50)
+    configuration = models.TextField()
+
+    def get_configuration_value(self, name, default_value=None):
+        configuration = json.loads(self.configuration)
+
+        if default_value is not None:
+            return configuration.get(name, default_value)
+        else:
+            try:
+                return configuration[name]
+            except KeyError:
+                raise ImproperlyConfigured("getpaid '%s' requires backend '%s' setting" % (self.backend, name))
+
+    @classmethod
+    def get_settings(cls, backend, request):
+        return PaymentConfigurationBase.objects.get(backend=backend)

@@ -54,11 +54,11 @@ class PaymentProcessor(PaymentProcessorBase):
         else:
             logger.error('paypal: unknown status %s' % ipn_obj.payment_status)
 
-    def get_return_url(self, type, pk=None):
+    def get_return_url(self, type, settings_object, pk=None):
         kwargs = {'pk': pk} if pk else {}
         url = reverse('getpaid-paypal-%s' % type, kwargs=kwargs)
         domain = get_domain()
-        if PaymentProcessor.get_backend_setting('force_ssl', False):
+        if settings_object.get_configuration_value('force_ssl', False):
             return 'https://%s%s' % (domain, url)
         else:
             return 'http://%s%s' % (domain, url)
@@ -73,12 +73,12 @@ class PaymentProcessor(PaymentProcessorBase):
         return SANDBOX_POSTBACK_ENDPOINT if self.is_test_mode() else POSTBACK_ENDPOINT
 
     @staticmethod
-    def get_business():
+    def get_business(settings_object):
         if PaymentProcessor.is_test_mode():
-            return PaymentProcessor.get_backend_setting('test_business')
-        return PaymentProcessor.get_backend_setting('business')
+            return settings_object.get_configuration_value('test_business')
+        return settings_object.get_configuration_value('business')
 
-    def get_gateway_url(self, request):
+    def get_gateway_url(self, request, settings_object):
         """
         Routes a payment to Gateway, should return URL for redirection.
 
@@ -92,16 +92,17 @@ class PaymentProcessor(PaymentProcessorBase):
         }
 
         signals.user_data_query.send(sender=None, order=self.payment.order, user_data=user_data)
+
         paypal_dict = {
-            "business": self.get_business(),
+            "business": self.get_business(settings_object=settings_object),
             "amount": self.payment.amount,
             'currency_code': self.payment.currency.upper(),
             'item_name': self.get_order_description(self.payment, self.payment.order),
             # "invoice": "unique-invoice-id",
-            "notify_url": self.get_return_url('online'),
-            "return_url": self.get_return_url('success', self.payment.pk),
-            "return": self.get_return_url('success', self.payment.pk),
-            'cancel_return': self.get_return_url('failure', self.payment.pk),
+            "notify_url": self.get_return_url('online', settings_object=settings_object),
+            "return_url": self.get_return_url('success', pk=self.payment.pk, settings_object=settings_object),
+            "return": self.get_return_url('success', pk=self.payment.pk, settings_object=settings_object),
+            'cancel_return': self.get_return_url('failure', pk=self.payment.pk, settings_object=settings_object),
             'custom': self.payment.pk,
         }
         return self._get_gateway_url, 'POST', paypal_dict

@@ -62,7 +62,7 @@ class PaymentProcessor(PaymentProcessorBase):
         return six.text_type(hashlib.md5(text_encoded).hexdigest())
 
     @staticmethod
-    def online(pos_id, session_id, ts, sig):
+    def online(pos_id, session_id, ts, sig, settings_object):
         params = {
             u'pos_id': pos_id,
             u'session_id': session_id,
@@ -70,7 +70,7 @@ class PaymentProcessor(PaymentProcessorBase):
             u'sig': sig
         }
 
-        key2 = six.text_type(PaymentProcessor.get_backend_setting('key2'))
+        key2 = six.text_type(settings_object.get_configuration_value('key2'))
         if sig != PaymentProcessor.compute_sig(params, PaymentProcessor._ONLINE_SIG_FIELDS, key2):
             logger.warning('Got message with wrong sig, %s' % str(params))
             return u'SIG ERR'
@@ -79,7 +79,7 @@ class PaymentProcessor(PaymentProcessorBase):
             params['pos_id'] = int(params['pos_id'])
         except ValueError:
             return u'POS_ID ERR'
-        if params['pos_id'] != int(PaymentProcessor.get_backend_setting('pos_id')):
+        if params['pos_id'] != int(settings_object.get_configuration_value('pos_id')):
             return u'POS_ID ERR'
 
         try:
@@ -92,14 +92,14 @@ class PaymentProcessor(PaymentProcessorBase):
         get_payment_status_task.delay(payment_id, session_id)
         return u'OK'
 
-    def get_gateway_url(self, request):
+    def get_gateway_url(self, request, settings_object):
         """
         Routes a payment to Gateway, should return URL for redirection.
 
         """
         params = {
-            u'pos_id': PaymentProcessor.get_backend_setting('pos_id'),
-            u'pos_auth_key': PaymentProcessor.get_backend_setting('pos_auth_key'),
+            u'pos_id': settings_object.get_configuration_value('pos_id'),
+            u'pos_auth_key': settings_object.get_configuration_value('pos_auth_key'),
             u'desc': self.get_order_description(self.payment, self.payment.order),
         }
 
@@ -116,16 +116,16 @@ class PaymentProcessor(PaymentProcessorBase):
         if user_data['lang'] and \
                 user_data['lang'].lower() in PaymentProcessor._ACCEPTED_LANGS:
             params['language'] = user_data['lang'].lower()
-        elif PaymentProcessor.get_backend_setting('lang', False) and \
-                PaymentProcessor.get_backend_setting('lang').lower() in \
+        elif settings_object.get_configuration_value('lang', False) and \
+                settings_object.get_configuration_value('lang').lower() in \
                     PaymentProcessor._ACCEPTED_LANGS:
             params['language'] = six.text_type(
-                PaymentProcessor.get_backend_setting('lang').lower())
+                settings_object.get_configuration_value('lang').lower())
 
-        key1 = six.text_type(PaymentProcessor.get_backend_setting('key1'))
+        key1 = six.text_type(settings_object.get_configuration_value('key1'))
 
-        signing = PaymentProcessor.get_backend_setting('signing', True)
-        testing = PaymentProcessor.get_backend_setting('testing', False)
+        signing = settings_object.get_configuration_value('signing', True)
+        testing = settings_object.get_configuration_value('testing', False)
 
         if testing:
             # Switch to testing mode, where payment method is set to "test payment"->"t"
@@ -150,10 +150,10 @@ class PaymentProcessor(PaymentProcessorBase):
             params['sig'] = PaymentProcessor.compute_sig(
                 params, self._REQUEST_SIG_FIELDS, key1)
 
-        if PaymentProcessor.get_backend_setting('method', 'get').lower() == 'post':
+        if settings_object.get_configuration_value('method', 'get').lower() == 'post':
             logger.info(u'New payment using POST: %s' % params)
             return self._GATEWAY_URL + 'UTF/NewPayment', 'POST', params
-        elif PaymentProcessor.get_backend_setting('method', 'get').lower() == 'get':
+        elif settings_object.get_configuration_value('method', 'get').lower() == 'get':
             logger.info(u'New payment using GET: %s' % params)
             for key in params.keys():
                 params[key] = six.text_type(params[key]).encode('utf-8')
@@ -163,14 +163,14 @@ class PaymentProcessor(PaymentProcessorBase):
             raise ImproperlyConfigured(
                 'PayU payment backend accepts only GET or POST')
 
-    def get_payment_status(self, session_id):
+    def get_payment_status(self, session_id, settings_object):
         params = {
-            u'pos_id': PaymentProcessor.get_backend_setting('pos_id'),
+            u'pos_id': settings_object.get_configuration_value('pos_id'),
             u'session_id': session_id,
             u'ts': time.time()
         }
-        key1 = PaymentProcessor.get_backend_setting('key1')
-        key2 = PaymentProcessor.get_backend_setting('key2')
+        key1 = settings_object.get_configuration_value('key1')
+        key2 = settings_object.get_configuration_value('key2')
 
         params['sig'] = PaymentProcessor.compute_sig(
             params, self._GET_SIG_FIELDS, key1)
@@ -219,14 +219,14 @@ class PaymentProcessor(PaymentProcessorBase):
             logger.error(
                 u'Payment status wrong response signature: %s' % response_params)
 
-    def accept_payment(self, session_id):
+    def accept_payment(self, session_id, settings_object):
         params = {
-            'pos_id': PaymentProcessor.get_backend_setting('pos_id'),
+            'pos_id': settings_object.get_configuration_value('pos_id'),
             'session_id': session_id,
             'ts': time.time()
         }
-        key1 = PaymentProcessor.get_backend_setting('key1')
-        key2 = PaymentProcessor.get_backend_setting('key2')
+        key1 = settings_object.get_configuration_value('key1')
+        key2 = settings_object.get_configuration_value('key2')
         params['sig'] = PaymentProcessor.compute_sig(
             params, self._GET_SIG_FIELDS, key1)
         for key in params.keys():

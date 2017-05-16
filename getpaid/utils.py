@@ -68,6 +68,16 @@ def get_backend_settings(backend):
         return {}
 
 
+def import_settings_module():
+    """
+    Returns backend settings.
+    If it does not exist it fails back to empty dict().
+    """
+    settings_module_name = settings.GETPAID_PAYMENT_CONFIGURATION
+    __import__(settings_module_name)
+    return sys.modules[settings_module_name]
+
+
 def build_absolute_uri(view_name, scheme='https', domain=None,
                        reverse_args=None, reverse_kwargs=None):
     if not reverse_args:

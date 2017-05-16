@@ -10,12 +10,12 @@ class PaymentProcessor(PaymentProcessorBase):
     BACKEND_NAME = _(u'Regular transfer')
     BACKEND_ACCEPTED_CURRENCY = ('PLN', 'EUR', 'USD')
 
-    def get_gateway_url(self, request):
+    def get_gateway_url(self, request, settings_object):
         """
         Routes a payment to view from configurations.
         """
 
-        module_name = PaymentProcessor.get_backend_setting('module_name')
+        module_name = settings_object.get_configuration_value('module_name')
         module = import_module(module_name)
         url = module.get_regular_transfer_url(self.payment)
         if not isinstance(url, basestring):

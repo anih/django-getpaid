@@ -6,8 +6,8 @@ class Command(BaseCommand):
     help = 'Display URL path for Transferuj.pl Online URL configuration'
 
     def handle(self, *args, **options):
-
-        key = PaymentProcessor.get_backend_setting('key', None)
+        settings_object = PaymentProcessor.get_settings_object()
+        key = settings_object.get_configuration_value('key', None)
         if key is None:
             self.stdout.write('Please be sure to provide "key" setting for this backend (random max. 16 characters)')
         else:

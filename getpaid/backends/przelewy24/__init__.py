@@ -52,7 +52,7 @@ class PaymentProcessor(PaymentProcessorBase):
         return six.text_type(hashlib.md5(text.encode('utf-8')).hexdigest())
 
     @staticmethod
-    def on_payment_status_change(p24_session_id, p24_order_id, p24_kwota, p24_order_id_full, p24_crc):
+    def on_payment_status_change(p24_session_id, p24_order_id, p24_kwota, p24_order_id_full, p24_crc, settings_object):
         params = {
             'p24_session_id': p24_session_id,
             'p24_order_id': p24_order_id,
@@ -60,7 +60,7 @@ class PaymentProcessor(PaymentProcessorBase):
             'p24_order_id_full': p24_order_id_full,
             'p24_crc': p24_crc,
         }
-        crc = PaymentProcessor.get_backend_setting('crc')
+        crc = settings_object.get_configuration_value('crc')
         if p24_crc != PaymentProcessor.compute_sig(params, PaymentProcessor._SUCCESS_RETURN_SIG_FIELDS,
                                                    crc):
             logger.warning('Success return call has wrong crc %s' % str(params))
@@ -70,14 +70,14 @@ class PaymentProcessor(PaymentProcessorBase):
         get_payment_status_task.delay(payment_id, p24_session_id, p24_order_id, p24_kwota)
         return True
 
-    def get_payment_status(self, p24_session_id, p24_order_id, p24_kwota):
+    def get_payment_status(self, p24_session_id, p24_order_id, p24_kwota, settings_object):
         params = {
             'p24_session_id': p24_session_id,
             'p24_order_id': p24_order_id,
-            'p24_id_sprzedawcy': PaymentProcessor.get_backend_setting('id'),
+            'p24_id_sprzedawcy': settings_object.get_configuration_value('id'),
             'p24_kwota': p24_kwota,
         }
-        crc = PaymentProcessor.get_backend_setting('crc')
+        crc = settings_object.get_configuration_value('crc')
         params['p24_crc'] = PaymentProcessor.compute_sig(params, self._STATUS_SIG_FIELDS, crc)
 
         for key in params.keys():
@@ -86,7 +86,7 @@ class PaymentProcessor(PaymentProcessorBase):
         data = urlencode(params)
 
         url = self._GATEWAY_CONFIRM_URL
-        if PaymentProcessor.get_backend_setting('sandbox', False):
+        if settings_object.get_configuration_value('sandbox', False):
             url = self._SANDBOX_GATEWAY_CONFIRM_URL
 
         self.payment.external_id = p24_order_id
@@ -112,13 +112,13 @@ class PaymentProcessor(PaymentProcessorBase):
             logger.warning('Payment rejected for data=%s: "%s"' % (str(params), response))
             self.payment.change_status('failed')
 
-    def get_gateway_url(self, request):
+    def get_gateway_url(self, request, settings_object):
         """
         Routes a payment to Gateway, should return URL for redirection.
 
         """
         params = {
-            'p24_id_sprzedawcy': PaymentProcessor.get_backend_setting('id'),
+            'p24_id_sprzedawcy': settings_object.get_configuration_value('id'),
             'p24_opis': self.get_order_description(self.payment, self.payment.order),
             'p24_session_id': "%s:%s:%s" % (self.payment.pk, self.BACKEND, time.time()),
             'p24_kwota': int(self.payment.amount * 100),
@@ -146,15 +146,15 @@ class PaymentProcessor(PaymentProcessorBase):
 
         if user_data['lang'] and user_data['lang'].lower() in PaymentProcessor._ACCEPTED_LANGS:
             params['p24_language'] = user_data['lang'].lower()
-        elif PaymentProcessor.get_backend_setting('lang', False) and PaymentProcessor.get_backend_setting(
+        elif settings_object.get_configuration_value('lang', False) and settings_object.get_configuration_value(
                 'lang').lower() in PaymentProcessor._ACCEPTED_LANGS:
-            params['p24_language'] = PaymentProcessor.get_backend_setting('lang').lower()
+            params['p24_language'] = settings_object.get_configuration_value('lang').lower()
 
         params['p24_crc'] = self.compute_sig(params, self._REQUEST_SIG_FIELDS,
-                                             PaymentProcessor.get_backend_setting('crc'))
+                                             settings_object.get_configuration_value('crc'))
 
         current_site = get_domain()
-        use_ssl = PaymentProcessor.get_backend_setting('ssl_return', False)
+        use_ssl = settings_object.get_configuration_value('ssl_return', False)
 
         params['p24_return_url_ok'] = ('https://' if use_ssl else 'http://') + current_site + reverse(
             'getpaid-przelewy24-success', kwargs={'pk': self.payment.pk})
@@ -164,5 +164,5 @@ class PaymentProcessor(PaymentProcessorBase):
             raise ImproperlyConfigured(
                 '%s requires filling `email` field for payment (you need to handle `user_data_query` signal)' % self.BACKEND)
 
-        return self._SANDBOX_GATEWAY_URL if PaymentProcessor.get_backend_setting('sandbox',
+        return self._SANDBOX_GATEWAY_URL if settings_object.get_configuration_value('sandbox',
                                                                                  False) else self._GATEWAY_URL, 'POST', params

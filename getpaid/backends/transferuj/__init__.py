@@ -39,10 +39,13 @@ class PaymentProcessor(PaymentProcessorBase):
         return text_type(hashlib.md5(text_encoded).hexdigest())
 
     @staticmethod
-    def online(ip, id, tr_id, tr_date, tr_crc, tr_amount, tr_paid, tr_desc,
-               tr_status, tr_error, tr_email, md5sum):
+    def online(
+            ip, id, tr_id, tr_date, tr_crc, tr_amount,
+            tr_paid, tr_desc, tr_status, tr_error, tr_email, md5sum,
+            settings_object
+    ):
 
-        allowed_ip = PaymentProcessor.get_backend_setting('allowed_ip',
+        allowed_ip = settings_object.get_configuration_value('allowed_ip',
             PaymentProcessor._ALLOWED_IP)
 
         if len(allowed_ip) != 0 and ip not in allowed_ip:
@@ -50,13 +53,13 @@ class PaymentProcessor(PaymentProcessorBase):
             return u'IP ERR'
 
         params = {'id': id, 'tr_id': tr_id, 'tr_amount': tr_amount, 'tr_crc': tr_crc}
-        key = PaymentProcessor.get_backend_setting('key')
+        key = settings_object.get_configuration_value('key')
 
         if md5sum != PaymentProcessor.compute_sig(params, PaymentProcessor._ONLINE_SIG_FIELDS, key):
             logger.warning('Got message with wrong sig, %s' % str(params))
             return u'SIG ERR'
 
-        if int(id) != int(PaymentProcessor.get_backend_setting('id')):
+        if int(id) != int(settings_object.get_configuration_value('id')):
             logger.warning('Got message with wrong id, %s' % str(params))
             return u'ID ERR'
 
@@ -86,10 +89,10 @@ class PaymentProcessor(PaymentProcessorBase):
 
         return u'TRUE'
 
-    def get_gateway_url(self, request):
+    def get_gateway_url(self, request, settings_object):
         "Routes a payment to Gateway, should return URL for redirection."
         params = {
-            'id': self.get_backend_setting('id'),
+            'id': settings_object.get_configuration_value('id'),
             'opis': self.get_order_description(self.payment,
                                                self.payment.order),
             # Here we put payment.pk as we can get order through payment model
@@ -98,23 +101,23 @@ class PaymentProcessor(PaymentProcessorBase):
             'kwota': text_type(self.payment.amount),
         }
 
-        self._build_user_data(params)
-        self._build_md5sum(params)
-        self._build_urls(params)
+        self._build_user_data(params, settings_object=settings_object)
+        self._build_md5sum(params, settings_object=settings_object)
+        self._build_urls(params, settings_object=settings_object)
 
-        method = self.get_backend_setting('method', 'get').lower()
+        method = settings_object.get_configuration_value('method', 'get').lower()
         if method not in ('post', 'get'):
             raise ImproperlyConfigured(
                 'Transferuj.pl payment backend accepts only GET or POST'
             )
 
         if method == 'post':
-            return (self._GATEWAY_URL, 'POST', params)
+            return self._GATEWAY_URL, 'POST', params
 
         params = {k: text_type(v).encode('utf-8') for k, v in params.items()}
-        return ("{}?{}".format( self._GATEWAY_URL, urlencode(params)), "GET", {})
+        return "{}?{}".format(self._GATEWAY_URL, urlencode(params)), "GET", {}
 
-    def _build_user_data(self, params):
+    def _build_user_data(self, params, settings_object):
         user_data = {
             'email': None,
             'lang': None,
@@ -123,7 +126,7 @@ class PaymentProcessor(PaymentProcessorBase):
                                      order=self.payment.order,
                                      user_data=user_data)
 
-        for lang in (user_data['lang'], self.get_backend_setting('lang', '')):
+        for lang in (user_data['lang'], settings_object.get_configuration_value('lang', '')):
             if lang and lang.lower() in self._ACCEPTED_LANGS:
                 params['jezyk'] = lang.lower()
                 break
@@ -132,23 +135,23 @@ class PaymentProcessor(PaymentProcessorBase):
 
         return params
 
-    def _build_md5sum(self, params):
-        if not self.get_backend_setting('signing', True):
+    def _build_md5sum(self, params, settings_object):
+        if not settings_object.get_configuration_value('signing', True):
             return params
 
         params['md5sum'] = self.compute_sig(
             params, self._REQUEST_SIG_FIELDS,
-            self.get_backend_setting('key'))
+            settings_object.get_configuration_value('key'))
 
         return params
 
-    def _build_urls(self, params):
+    def _build_urls(self, params, settings_object):
         domain = get_domain()
         online_domain = return_domain = "http"
 
-        if self.get_backend_setting('force_ssl_online', False):
+        if settings_object.get_configuration_value('force_ssl_online', False):
             online_domain = "https"
-        if self.get_backend_setting('force_ssl_return', False):
+        if settings_object.get_configuration_value('force_ssl_return', False):
             return_domain = "https"
 
         online_domain = "{}://{}".format(online_domain, domain)

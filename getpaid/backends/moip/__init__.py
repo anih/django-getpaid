@@ -48,8 +48,8 @@ class PaymentProcessor(PaymentProcessorBase):
         u'email': u'Email',  # E-mail do cliente
     }
 
-    def get_gateway_url(self, request):
-        if PaymentProcessor.get_backend_setting('testing', False):
+    def get_gateway_url(self, request, settings_object):
+        if settings_object.get_configuration_value('testing', False):
             gateway_url = u"https://desenvolvedor.moip.com.br/sandbox"
         else:
             gateway_url = u"https://www.moip.com.br"
@@ -83,8 +83,8 @@ class PaymentProcessor(PaymentProcessorBase):
                     etree.SubElement(xml_buyer_address, self._USER_DATA_TO_MOIP[field]).text = customer_info[field]
 
         payment_full_url = "%s%s" % (gateway_url, self._SEND_INSTRUCTION_PAGE)
-        user = PaymentProcessor.get_backend_setting('token')
-        pwd = PaymentProcessor.get_backend_setting('key')
+        user = settings_object.get_configuration_value('token')
+        pwd = settings_object.get_configuration_value('key')
         contents = etree.tostring(xml_body, encoding='utf-8')
 
         response = requests.post(payment_full_url, auth=(user, pwd), data=contents).text

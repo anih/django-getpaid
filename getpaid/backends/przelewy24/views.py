@@ -26,8 +26,14 @@ class OnlineView(View):
             logger.warning('Got malformed POST request: %s' % str(request.POST))
             return HttpResponse('MALFORMED', status=500)
 
-        if PaymentProcessor.on_payment_status_change(p24_session_id, p24_order_id, p24_kwota, p24_order_id_full,
-                                                     p24_crc):
+        settings_object = PaymentProcessor.get_settings_object()
+        if PaymentProcessor.on_payment_status_change(
+                p24_session_id,
+                p24_order_id,
+                p24_kwota,
+                p24_order_id_full,
+                p24_crc,
+                settings_object=settings_object):
             return HttpResponse('OK')
         else:
             return HttpResponse('CRC ERR')
@@ -53,7 +59,15 @@ class SuccessView(DetailView):
             logger.warning('Got malformed POST request: %s' % str(request.POST))
             return HttpResponse('MALFORMED', status=500)
 
-        PaymentProcessor.on_payment_status_change(p24_session_id, p24_order_id, p24_kwota, p24_order_id_full, p24_crc)
+        settings_object = PaymentProcessor.get_settings_object()
+        PaymentProcessor.on_payment_status_change(
+            p24_session_id,
+            p24_order_id,
+            p24_kwota,
+            p24_order_id_full,
+            p24_crc,
+            settings_object=settings_object,
+        )
 
         self.object = self.get_object()
         context = self.get_context_data(object=self.object)
@@ -80,7 +94,15 @@ class FailureView(DetailView):
             logger.warning('Got malformed POST request: %s' % str(request.POST))
             return HttpResponse('MALFORMED', status=500)
 
-        PaymentProcessor.on_payment_status_change(p24_session_id, p24_order_id, p24_kwota, p24_order_id_full, p24_crc)
+        settings_object = PaymentProcessor.get_settings_object()
+        PaymentProcessor.on_payment_status_change(
+            p24_session_id,
+            p24_order_id,
+            p24_kwota,
+            p24_order_id_full,
+            p24_crc,
+            settings_object=settings_object,
+        )
 
         self.object = self.get_object()
         context = self.get_context_data(object=self.object)

@@ -99,7 +99,7 @@ class PaymentProcessor(PaymentProcessorBase):
         return Decimal(int(amount_str) / Decimal("100.0"))
 
     @staticmethod
-    def compute_hash(params):
+    def compute_hash(params, settings_object):
         """
         The hash you send to (and receive from) ePay must be the value of all
         parameters in the order they are sent + the MD5 key.
@@ -110,7 +110,7 @@ class PaymentProcessor(PaymentProcessorBase):
         """
         assert isinstance(params, OrderedDict)
         params = deepcopy(params)
-        secret = unicode(PaymentProcessor.get_backend_setting('secret', ''))
+        secret = unicode(settings_object.get_configuration_value('secret', ''))
         if not secret:
             raise ImproperlyConfigured("epaydk requires `secret` md5 hash"
                                        " setting")
@@ -126,7 +126,7 @@ class PaymentProcessor(PaymentProcessorBase):
         return sig_hash
 
     @staticmethod
-    def is_received_request_valid(params):
+    def is_received_request_valid(params, settings_object):
         """
         The hash received from ePay is the value of all GET parameters
         received except the parameter hash + the MD5 key.
@@ -135,7 +135,7 @@ class PaymentProcessor(PaymentProcessorBase):
 
         @see http://tech.epay.dk/en/hash-md5-check
         """
-        sig_hash = PaymentProcessor.compute_hash(params)
+        sig_hash = PaymentProcessor.compute_hash(params, settings_object)
         if 'hash' in params:
             if params['hash'] == sig_hash:
                 return True
@@ -145,7 +145,7 @@ class PaymentProcessor(PaymentProcessorBase):
         req_lang = get_language_from_request(request) or prefered
         return unicode(self.EPAYDK_LANGUAGE_IDS.get(req_lang, 2))  # 2=en
 
-    def get_gateway_url(self, request):
+    def get_gateway_url(self, request, settings_object):
         """
         @see http://tech.epay.dk/en/payment-window-parameters
         @see http://tech.epay.dk/en/specification
@@ -156,8 +156,8 @@ class PaymentProcessor(PaymentProcessorBase):
         `callbackurl` - is called instantly from the ePay server when
                         the payment is completed.
         """
-        merchantnumber = unicode(
-            self.get_backend_setting('merchantnumber', ''))
+
+        merchantnumber = unicode(settings_object.get_configuration_value('merchantnumber', ''))
         if not merchantnumber:
             raise ImproperlyConfigured("epay.dk requires merchantnumber")
 
@@ -169,9 +169,10 @@ class PaymentProcessor(PaymentProcessorBase):
                            self.payment.currency))
 
         # timeout in minutes
-        timeout = unicode(self.get_backend_setting('timeout', '3'))
-        instantcallback = unicode(self.get_backend_setting('instantcallback',
-                                                           '0'))
+        timeout = unicode(settings_object.get_configuration_value('timeout', '3'))
+        instantcallback = unicode(
+            settings_object.get_configuration_value('instantcallback', '0')
+        )
 
         params = OrderedDict([
             (u'merchantnumber', merchantnumber),
@@ -203,8 +204,7 @@ class PaymentProcessor(PaymentProcessorBase):
         params['accepturl'] = build_absolute_uri('getpaid-epaydk-success',
                                                  **url_data)
 
-        if not PaymentProcessor.get_backend_setting('callback_secret_path',
-                                                    ''):
+        if not settings_object.get_configuration_value('callback_secret_path', ''):
             params['callbackurl'] = build_absolute_uri(
                 'getpaid-epaydk-online', **url_data
             )

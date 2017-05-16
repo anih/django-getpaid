@@ -37,9 +37,9 @@ class Command(BaseCommand):
             reverse('getpaid-payu-online'),
             )
         )
-
+        settings_object = PaymentProcessor.get_settings_object()
         self.stdout.write('To change domain name please edit Sites settings. Don\'t forget to setup your web server to accept https connection in order to use secure links.\n')
-        if PaymentProcessor.get_backend_setting('testing', False):
+        if settings_object.get_configuration_value('testing', False):
             self.stdout.write('\nTesting mode is ON\nPlease be sure that you enabled testing payments in PayU configuration page.\n')
-        if PaymentProcessor.get_backend_setting('signing', False):
+        if settings_object.get_configuration_value('signing', False):
             self.stdout.write('\nRequest signing is ON\n * Please be sure that you enabled signing payments in PayU configuration page.\n')

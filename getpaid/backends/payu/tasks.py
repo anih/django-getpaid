@@ -17,7 +17,8 @@ def get_payment_status_task(payment_id, session_id):
         return
     from getpaid.backends.payu import PaymentProcessor # Avoiding circular import
     processor = PaymentProcessor(payment)
-    processor.get_payment_status(session_id)
+    settings_object = payment.get_settings_object()
+    processor.get_payment_status(session_id, settings_object)
 
 
 @task(max_retries=50, default_retry_delay=2 * 60)
@@ -31,4 +32,5 @@ def accept_payment(payment_id, session_id):
 
     from getpaid.backends.payu import PaymentProcessor # Avoiding circular import
     processor = PaymentProcessor(payment)
-    processor.accept_payment(session_id)
+    settings_object = payment.get_settings_object()
+    processor.accept_payment(session_id, settings_object=settings_object)

@@ -32,9 +32,8 @@ class CallbackView(View):
     http_method_names = ['get', ]
 
     def get(self, request, *args, **kwargs):
-
-        cb_secret_path = PaymentProcessor\
-            .get_backend_setting('callback_secret_path', '')
+        settings_object = PaymentProcessor.get_settings_object(request=request)
+        cb_secret_path = settings_object.get_configuration_value('callback_secret_path', '')
         if cb_secret_path:
             if not kwargs.get('secret_path', ''):
                 logger.debug("empty secret path")
@@ -47,7 +46,7 @@ class CallbackView(View):
         form = EpaydkOnlineForm(request.GET)
         if form.is_valid():
             params = qs_to_ordered_params(request.META['QUERY_STRING'])
-            if PaymentProcessor.is_received_request_valid(params):
+            if PaymentProcessor.is_received_request_valid(params, settings_object=settings_object):
                 try:
                     PaymentProcessor.confirmed(form.cleaned_data)
                     return HttpResponse('OK')
@@ -80,7 +79,9 @@ class AcceptView(View):
             return HttpResponseBadRequest("Bad request")
 
         params = qs_to_ordered_params(request.META['QUERY_STRING'])
-        if not PaymentProcessor.is_received_request_valid(params):
+        settings_object = PaymentProcessor.get_settings_object(request=request)
+
+        if not PaymentProcessor.is_received_request_valid(params, settings_object=settings_object):
             logger.error("MD5 hash check failed")
             return HttpResponseBadRequest("Bad request")
 

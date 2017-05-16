@@ -40,15 +40,14 @@ class PaymentProcessor(PaymentProcessorBase):
         return hashlib.md5(text.encode('utf8')).hexdigest()
 
     @staticmethod
-    def online(params, ip):
-
-        allowed_ip = PaymentProcessor.get_backend_setting('allowed_ip', PaymentProcessor._ALLOWED_IP)
+    def online(params, ip, settings_object):
+        allowed_ip = settings_object.get_configuration_value('allowed_ip', PaymentProcessor._ALLOWED_IP)
 
         if len(allowed_ip) != 0 and ip not in allowed_ip:
             logger.warning('Got message from not allowed IP %s' % str(allowed_ip))
             return 'IP ERR'
 
-        PIN = PaymentProcessor.get_backend_setting('PIN', '')
+        PIN = settings_object.get_configuration_value('PIN', '')
 
         if params['md5'] != PaymentProcessor.compute_sig(params, PaymentProcessor._ONLINE_SIG_FIELDS, PIN):
             logger.warning('Got message with wrong sig, %s' % str(params))
@@ -58,7 +57,7 @@ class PaymentProcessor(PaymentProcessorBase):
             params['id'] = int(params['id'])
         except ValueError:
             return u'ID ERR'
-        if params['id'] != int(PaymentProcessor.get_backend_setting('id')):
+        if params['id'] != int(settings_object.get_configuration_value('id')):
             return u'ID ERR'
 
         from getpaid.models import Payment
@@ -90,33 +89,33 @@ class PaymentProcessor(PaymentProcessorBase):
 
         return u'OK'
 
-    def get_URLC(self):
+    def get_URLC(self, settings_object):
         urlc = reverse('getpaid-dotpay-online')
-        if PaymentProcessor.get_backend_setting('force_ssl', False):
+        if settings_object.get_configuration_value('force_ssl', False):
             return u'https://%s%s' % (get_domain(), urlc)
         else:
             return u'http://%s%s' % (get_domain(), urlc)
 
-    def get_URL(self, pk):
+    def get_URL(self, pk, settings_object):
         url = reverse('getpaid-dotpay-return', kwargs={'pk': pk})
-        if PaymentProcessor.get_backend_setting('force_ssl', False):
+        if settings_object.get_configuration_value('force_ssl', False):
             return u'https://%s%s' % (get_domain(), url)
         else:
             return u'http://%s%s' % (get_domain(), url)
 
-    def get_gateway_url(self, request):
+    def get_gateway_url(self, request, settings_object):
         """
         Routes a payment to Gateway, should return URL for redirection.
         """
         params = {
-            'id': PaymentProcessor.get_backend_setting('id'),
+            'id': settings_object.get_configuration_value('id'),
             'description': self.get_order_description(self.payment, self.payment.order),
             'amount': self.payment.amount,
             'currency': self.payment.currency,
             'type': 0,  # show "return" button after finished payment
             'control': self.payment.pk,
-            'URL': self.get_URL(self.payment.pk),
-            'URLC': self.get_URLC(),
+            'URL': self.get_URL(self.payment.pk, settings_object=settings_object),
+            'URLC': self.get_URLC(settings_object=settings_object),
         }
 
         user_data = {
@@ -130,24 +129,24 @@ class PaymentProcessor(PaymentProcessorBase):
 
         if user_data['lang'] and user_data['lang'].lower() in PaymentProcessor._ACCEPTED_LANGS:
             params['lang'] = user_data['lang'].lower()
-        elif PaymentProcessor.get_backend_setting('lang', False) and \
-                PaymentProcessor.get_backend_setting('lang').lower() in PaymentProcessor._ACCEPTED_LANGS:
-            params['lang'] = PaymentProcessor.get_backend_setting('lang').lower()
+        elif settings_object.get_configuration_value('lang', False) and \
+                settings_object.get_configuration_value('lang').lower() in PaymentProcessor._ACCEPTED_LANGS:
+            params['lang'] = settings_object.get_configuration_value('lang').lower()
 
-        if PaymentProcessor.get_backend_setting('onlinetransfer', False):
+        if settings_object.get_configuration_value('onlinetransfer', False):
             params['onlinetransfer'] = 1
-        if PaymentProcessor.get_backend_setting('p_email', False):
-            params['p_email'] = PaymentProcessor.get_backend_setting('p_email')
-        if PaymentProcessor.get_backend_setting('p_info', False):
-            params['p_info'] = PaymentProcessor.get_backend_setting('p_info')
-        if PaymentProcessor.get_backend_setting('tax', False):
+        if settings_object.get_configuration_value('p_email', False):
+            params['p_email'] = settings_object.get_configuration_value('p_email')
+        if settings_object.get_configuration_value('p_info', False):
+            params['p_info'] = settings_object.get_configuration_value('p_info')
+        if settings_object.get_configuration_value('tax', False):
             params['tax'] = 1
 
-        gateway_url = PaymentProcessor.get_backend_setting('gateway_url', self._GATEWAY_URL)
+        gateway_url = settings_object.get_configuration_value('gateway_url', self._GATEWAY_URL)
 
-        if PaymentProcessor.get_backend_setting('method', 'get').lower() == 'post':
+        if settings_object.get_configuration_value('method', 'get').lower() == 'post':
             return gateway_url, 'POST', params
-        elif PaymentProcessor.get_backend_setting('method', 'get').lower() == 'get':
+        elif settings_object.get_configuration_value('method', 'get').lower() == 'get':
             for key in params.keys():
                 params[key] = six.text_type(params[key]).encode('utf-8')
             return gateway_url + '?' + urlencode(params), "GET", {}

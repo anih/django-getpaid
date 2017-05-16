@@ -16,4 +16,5 @@ def get_payment_status_task(payment_id, p24_session_id, p24_order_id, p24_kwota)
 
     from getpaid.backends.przelewy24 import PaymentProcessor  # Avoiding circular import
     processor = PaymentProcessor(payment)
-    processor.get_payment_status(p24_session_id, p24_order_id, p24_kwota)
+    settings_object = payment.get_settings_object()
+    processor.get_payment_status(p24_session_id, p24_order_id, p24_kwota, settings_object=settings_object)

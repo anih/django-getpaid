@@ -12,13 +12,15 @@ class PaymillView(FormView):
     template_name = 'getpaid_paymill_backend/paymill.html'
 
     def get_context_data(self, **kwargs):
+        # self.kwargs['view'].request
+        settings_object = PaymentProcessor.get_settings_object(request=self.request)
         context = super(PaymillView, self).get_context_data(**kwargs)
         self.payment = get_object_or_404(Payment, pk=self.kwargs['pk'], status='in_progress', backend='getpaid.backends.paymill')
         context['payment'] = self.payment
         context['amount_int'] = int(self.payment.amount * 100)
         context['order'] = self.payment.order
         context['order_name'] = PaymentProcessor(self.payment).get_order_description(self.payment, self.payment.order)  # TODO: Refactoring of get_order_description needed, should not require payment arg
-        context['PAYMILL_PUBLIC_KEY'] = PaymentProcessor.get_backend_setting('PAYMILL_PUBLIC_KEY')
+        context['PAYMILL_PUBLIC_KEY'] = settings_object.get_configuration_value('PAYMILL_PUBLIC_KEY')
         return context
 
     def get_success_url(self):
@@ -32,8 +34,8 @@ class PaymillView(FormView):
     def form_valid(self, form):
         # Change payment status and jump to success_url or failure_url
         self.payment = get_object_or_404(Payment, pk=self.kwargs['pk'], status='in_progress', backend='getpaid.backends.paymill')
-
-        pmill = pymill.Pymill(PaymentProcessor.get_backend_setting('PAYMILL_PRIVATE_KEY'))
+        settings_object = PaymentProcessor.get_settings_object(request=self.request)
+        pmill = pymill.Pymill(settings_object.get_configuration_value('PAYMILL_PRIVATE_KEY'))
 
         token = form.cleaned_data['token']
         card = pmill.new_card(token)

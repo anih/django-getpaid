@@ -9,12 +9,13 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         current_site = get_domain()
+        settings_object = PaymentProcessor.get_settings_object()
 
         self.stdout.write(
             'Please contact with Przelewy24 (serwis@przelewy24.pl) and provide them with the following URL: \n\n')
 
         self.stdout.write(
-            ('https://' if PaymentProcessor.get_backend_setting('ssl_return', False) else 'http://') + '%s%s\n\n' % (
+            ('https://' if settings_object.get_configuration_value('ssl_return', False) else 'http://') + '%s%s\n\n' % (
                 current_site, reverse('getpaid-przelewy24-online'))
         )
 
@@ -23,5 +24,5 @@ class Command(BaseCommand):
 
         self.stdout.write(
             'To change domain name please edit Sites settings. Don\'t forget to setup your web server to accept https connection in order to use secure links.\n')
-        if PaymentProcessor.get_backend_setting('sandbox', False):
+        if settings_object.get_configuration_value('sandbox', False):
             self.stdout.write('\nSandbox mode is ON.\n')
