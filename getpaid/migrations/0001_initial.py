@@ -1,18 +1,27 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 
-from django.conf import settings
+import django
+import swapper
 from django.db import models, migrations
-import getpaid.abstract_mixin
 
 
 class Migration(migrations.Migration):
 
     dependencies = [
-        migrations.swappable_dependency(settings.GETPAID_ORDER_MODEL),
+        swapper.dependency('getpaid', 'Order'),
     ]
 
     operations = [
+        migrations.CreateModel(
+            name='Order',
+            fields=[
+                ('id', models.AutoField(auto_created=True, serialize=False, primary_key=True, verbose_name='ID')),
+            ],
+            options={
+                'swappable': swapper.swappable_setting('getpaid', 'Order'),
+            },
+        ),
         migrations.CreateModel(
             name='Payment',
             fields=[
@@ -26,13 +35,13 @@ class Migration(migrations.Migration):
                 ('amount_paid', models.DecimalField(max_digits=20, default=0, decimal_places=4, verbose_name='amount paid')),
                 ('external_id', models.CharField(blank=True, null=True, verbose_name='external id', max_length=64)),
                 ('description', models.CharField(blank=True, null=True, verbose_name='description', max_length=128)),
-                ('order', models.ForeignKey(related_name='payments', to=settings.GETPAID_ORDER_MODEL)),
+                ('order', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to=swapper.get_model_name('getpaid', 'Order'))),
             ],
             options={
                 'verbose_name_plural': 'Payments',
                 'ordering': ('-created_on',),
                 'verbose_name': 'Payment',
             },
-            bases=(models.Model, getpaid.abstract_mixin.AbstractMixin),
+            bases=(models.Model, ),
         ),
     ]

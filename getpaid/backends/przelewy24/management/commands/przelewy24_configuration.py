@@ -15,7 +15,7 @@ class Command(BaseCommand):
             'Please contact with Przelewy24 (serwis@przelewy24.pl) and provide them with the following URL: \n\n')
 
         self.stdout.write(
-            ('https://' if settings_object.get_configuration_value('ssl_return', False) else 'http://') + '%s%s\n\n' % (
+            ('https://' if PaymentProcessor.get_backend_setting('ssl_return', True) else 'http://') + '%s%s\n\n' % (
                 current_site, reverse('getpaid-przelewy24-online'))
         )
 
@@ -24,5 +24,3 @@ class Command(BaseCommand):
 
         self.stdout.write(
             'To change domain name please edit Sites settings. Don\'t forget to setup your web server to accept https connection in order to use secure links.\n')
-        if settings_object.get_configuration_value('sandbox', False):
-            self.stdout.write('\nSandbox mode is ON.\n')

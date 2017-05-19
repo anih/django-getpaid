@@ -10,6 +10,8 @@ import hashlib
 import logging
 import time
 import datetime
+
+from django import forms
 from django.utils import six
 from six.moves.urllib.request import Request, urlopen
 from six.moves.urllib.parse import urlencode
@@ -28,6 +30,11 @@ logger = logging.getLogger('getpaid.backends.przelewy24')
 
 
 class PaymentProcessor(PaymentProcessorBase):
+    configuration_options = {
+        'id': forms.IntegerField(label='Przelewy24 - ID sprzedawcy'),
+        'crc': forms.CharField(label='Przelewy24 - CRC sprzedawcy'),
+    }
+
     BACKEND = u'getpaid.backends.przelewy24'
     BACKEND_NAME = _(u'Przelewy24')
     BACKEND_ACCEPTED_CURRENCY = (u'PLN', )
@@ -86,9 +93,6 @@ class PaymentProcessor(PaymentProcessorBase):
         data = urlencode(params)
 
         url = self._GATEWAY_CONFIRM_URL
-        if settings_object.get_configuration_value('sandbox', False):
-            url = self._SANDBOX_GATEWAY_CONFIRM_URL
-
         self.payment.external_id = p24_order_id
 
         request = Request(url, data)
@@ -146,15 +150,15 @@ class PaymentProcessor(PaymentProcessorBase):
 
         if user_data['lang'] and user_data['lang'].lower() in PaymentProcessor._ACCEPTED_LANGS:
             params['p24_language'] = user_data['lang'].lower()
-        elif settings_object.get_configuration_value('lang', False) and settings_object.get_configuration_value(
+        elif PaymentProcessor.get_backend_setting('lang', False) and PaymentProcessor.get_backend_setting(
                 'lang').lower() in PaymentProcessor._ACCEPTED_LANGS:
-            params['p24_language'] = settings_object.get_configuration_value('lang').lower()
+            params['p24_language'] = PaymentProcessor.get_backend_setting('lang').lower()
 
         params['p24_crc'] = self.compute_sig(params, self._REQUEST_SIG_FIELDS,
                                              settings_object.get_configuration_value('crc'))
 
         current_site = get_domain()
-        use_ssl = settings_object.get_configuration_value('ssl_return', False)
+        use_ssl = PaymentProcessor.get_backend_setting('ssl_return', True)
 
         params['p24_return_url_ok'] = ('https://' if use_ssl else 'http://') + current_site + reverse(
             'getpaid-przelewy24-success', kwargs={'pk': self.payment.pk})
@@ -164,5 +168,4 @@ class PaymentProcessor(PaymentProcessorBase):
             raise ImproperlyConfigured(
                 '%s requires filling `email` field for payment (you need to handle `user_data_query` signal)' % self.BACKEND)
 
-        return self._SANDBOX_GATEWAY_URL if settings_object.get_configuration_value('sandbox',
-                                                                                 False) else self._GATEWAY_URL, 'POST', params
+        return self._GATEWAY_URL, 'POST', params

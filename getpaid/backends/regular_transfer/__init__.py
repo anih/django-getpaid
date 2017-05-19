@@ -15,7 +15,7 @@ class PaymentProcessor(PaymentProcessorBase):
         Routes a payment to view from configurations.
         """
 
-        module_name = settings_object.get_configuration_value('module_name')
+        module_name = PaymentProcessor.get_backend_setting('module_name')
         module = import_module(module_name)
         url = module.get_regular_transfer_url(self.payment)
         if not isinstance(url, basestring):

@@ -1,11 +1,14 @@
 # -*- coding:utf-8 -*-
 from importlib import import_module
+
+from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from django.utils.translation import ugettext_lazy as _
 from getpaid.backends import PaymentProcessorBase
 
 
 class PaymentProcessor(PaymentProcessorBase):
+
     BACKEND = 'getpaid.backends.cod'
     BACKEND_NAME = _(u'Cash on delivery')
     BACKEND_ACCEPTED_CURRENCY = ('PLN', 'EUR', 'USD')
@@ -14,7 +17,7 @@ class PaymentProcessor(PaymentProcessorBase):
         """
         Routes a payment to view from configurations.
         """
-        module_name = settings_object.get_configuration_value('module_name')
+        module_name = PaymentProcessor.get_backend_setting('module_name')
         module = import_module(module_name)
         url = module.get_cod_url(self.payment)
         if not isinstance(url, basestring):

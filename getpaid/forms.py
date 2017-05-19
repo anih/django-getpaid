@@ -1,3 +1,4 @@
+import swapper
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.forms import forms
@@ -9,8 +10,9 @@ from django.utils.encoding import force_text
 
 from django.utils.safestring import mark_safe
 from django.utils.translation import ugettext as _
-from getpaid.models import Order
 from .utils import get_backend_choices, import_name
+
+Order = swapper.load_model("getpaid", "Order")
 
 
 class PaymentRadioInput(RadioChoiceInput):

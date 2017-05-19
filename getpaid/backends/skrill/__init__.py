@@ -131,7 +131,7 @@ class PaymentProcessor(PaymentProcessorBase):
         kwargs = {'pk': pk} if pk else {}
         url = reverse('getpaid-skrill-%s' % type, kwargs=kwargs)
         current_site = Site.objects.get_current()
-        if settings_object.get_configuration_value('force_ssl', False):
+        if settings_object.get_configuration_value('force_ssl', True):
             return 'https://%s%s' % (current_site.domain, url)
         else:
             return 'http://%s%s' % (current_site.domain, url)

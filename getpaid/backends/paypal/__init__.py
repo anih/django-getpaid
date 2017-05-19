@@ -2,6 +2,7 @@ import datetime
 import logging
 from decimal import Decimal
 
+from django import forms
 from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.utils.timezone import utc
@@ -15,6 +16,10 @@ logger = logging.getLogger('getpaid.backends.paypal')
 
 
 class PaymentProcessor(PaymentProcessorBase):
+    configuration_options = {
+        'business': forms.EmailField(label='PayPal - adres e-mail'),
+    }
+
     BACKEND = 'getpaid.backends.paypal'
     BACKEND_NAME = _('paypal')
     BACKEND_ACCEPTED_CURRENCY = ('PLN', 'USD', 'EUR', 'GPB')
@@ -54,28 +59,22 @@ class PaymentProcessor(PaymentProcessorBase):
         else:
             logger.error('paypal: unknown status %s' % ipn_obj.payment_status)
 
-    def get_return_url(self, type, settings_object, pk=None):
+    def get_return_url(self, type, pk=None):
         kwargs = {'pk': pk} if pk else {}
         url = reverse('getpaid-paypal-%s' % type, kwargs=kwargs)
         domain = get_domain()
-        if settings_object.get_configuration_value('force_ssl', False):
+        if PaymentProcessor.get_backend_setting('force_ssl', True):
             return 'https://%s%s' % (domain, url)
         else:
             return 'http://%s%s' % (domain, url)
 
-    @staticmethod
-    def is_test_mode():
-        return getattr(settings, 'PAYPAL_TEST', True)
-
     @property
     def _get_gateway_url(self):
-        from paypal.standard.conf import SANDBOX_POSTBACK_ENDPOINT, POSTBACK_ENDPOINT
-        return SANDBOX_POSTBACK_ENDPOINT if self.is_test_mode() else POSTBACK_ENDPOINT
+        from paypal.standard.conf import POSTBACK_ENDPOINT
+        return POSTBACK_ENDPOINT
 
     @staticmethod
     def get_business(settings_object):
-        if PaymentProcessor.is_test_mode():
-            return settings_object.get_configuration_value('test_business')
         return settings_object.get_configuration_value('business')
 
     def get_gateway_url(self, request, settings_object):
@@ -99,10 +98,10 @@ class PaymentProcessor(PaymentProcessorBase):
             'currency_code': self.payment.currency.upper(),
             'item_name': self.get_order_description(self.payment, self.payment.order),
             # "invoice": "unique-invoice-id",
-            "notify_url": self.get_return_url('online', settings_object=settings_object),
-            "return_url": self.get_return_url('success', pk=self.payment.pk, settings_object=settings_object),
-            "return": self.get_return_url('success', pk=self.payment.pk, settings_object=settings_object),
-            'cancel_return': self.get_return_url('failure', pk=self.payment.pk, settings_object=settings_object),
+            "notify_url": self.get_return_url('online'),
+            "return_url": self.get_return_url('success', pk=self.payment.pk),
+            "return": self.get_return_url('success', pk=self.payment.pk),
+            'cancel_return': self.get_return_url('failure', pk=self.payment.pk),
             'custom': self.payment.pk,
         }
         return self._get_gateway_url, 'POST', paypal_dict

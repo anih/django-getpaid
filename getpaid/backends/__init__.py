@@ -1,8 +1,9 @@
 from django.conf import settings
+from django.core.exceptions import ImproperlyConfigured
 from django.template.base import Template
 from django.template.context import Context
 from django.utils import six
-from getpaid.utils import import_settings_module
+from getpaid.utils import import_settings_module, get_backend_settings
 
 
 class PaymentProcessorBase(object):
@@ -12,7 +13,7 @@ class PaymentProcessorBase(object):
      * manage all necessary logic to accept payment from gateway, e.g. expose
        a View for incoming transaction notification status changes
     """
-
+    configuration_options = {}
     #Each backend need to define this values
     BACKEND = None
     """
@@ -87,3 +88,20 @@ class PaymentProcessorBase(object):
         """
         backend_settings = import_settings_module()
         return backend_settings.get_settings(cls.BACKEND, request)
+
+    @classmethod
+    def get_backend_setting(cls, name, default=None):
+        """
+        Reads ``name`` setting from backend settings dictionary.
+
+        If `default` value is omitted, raises ``ImproperlyConfigured`` when
+        setting ``name`` is not available.
+        """
+        backend_settings = get_backend_settings(cls.BACKEND)
+        if default is not None:
+            return backend_settings.get(name, default)
+        else:
+            try:
+                return backend_settings[name]
+            except KeyError:
+                raise ImproperlyConfigured("getpaid '%s' requires backend '%s' setting" % (cls.BACKEND, name))

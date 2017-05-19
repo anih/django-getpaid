@@ -9,13 +9,25 @@ from django.utils import six
 from django.utils.timezone import utc
 from django.utils.translation import ugettext_lazy as _
 from django.utils.encoding import python_2_unicode_compatible
-from .abstract_mixin import AbstractMixin
+import swapper
+
 from getpaid import signals
 from .utils import import_backend_modules, import_settings_module
 from django.conf import settings
 
 if six.PY3:
     unicode = str
+
+
+class BaseOrder(models.Model):
+    class Meta:
+        abstract = True
+
+
+class Order(BaseOrder):
+    class Meta:
+        swappable = swapper.swappable_setting("getpaid", "Order")
+
 
 PAYMENT_STATUS_CHOICES = (
     ('new', _("new")),
@@ -34,11 +46,19 @@ class PaymentManager(models.Manager):
 
 
 @python_2_unicode_compatible
-class PaymentFactory(models.Model, AbstractMixin):
+class Payment(models.Model):
     """
     This is an abstract class that defines a structure of Payment model that will be
     generated dynamically with one additional field: ``order``
     """
+
+    class Meta:
+        ordering = ('-created_on',)
+        verbose_name = _("Payment")
+        verbose_name_plural = _("Payments")
+
+    objects = PaymentManager()
+
     amount = models.DecimalField(_("amount"), decimal_places=4, max_digits=20)
     currency = models.CharField(_("currency"), max_length=3)
     status = models.CharField(_("status"), max_length=20, choices=PAYMENT_STATUS_CHOICES, default='new', db_index=True)
@@ -49,15 +69,16 @@ class PaymentFactory(models.Model, AbstractMixin):
     external_id = models.CharField(_("external id"), max_length=64, blank=True, null=True)
     description = models.CharField(_("description"), max_length=128, blank=True, null=True)
 
-    class Meta:
-        abstract = True
+    order = models.ForeignKey(swapper.get_model_name('getpaid', 'Order'), related_name='payments')
+    payment_configuration = models.ForeignKey(swapper.get_model_name('getpaid', 'PaymentConfiguration'))
+
 
     def __str__(self):
         return _("Payment #%(id)d") % {'id': self.id}
 
-    @classmethod
-    def contribute(cls, order, **kwargs):
-        return {'order': models.ForeignKey(order, **kwargs)}
+    # @classmethod
+    # def contribute(cls, order, **kwargs):
+    #     return {'order': models.ForeignKey(order, **kwargs)}
 
     @classmethod
     def create(cls, order, backend):
@@ -129,36 +150,6 @@ class PaymentFactory(models.Model, AbstractMixin):
         return self.payment_configuration
 
 
-def register_to_payment(order_class, **kwargs):
-    """
-    A function for registering unaware order class to ``getpaid``. This will
-    generate a ``Payment`` model class that will store payments with
-    ForeignKey to original order class
-    This also will build a model class for every enabled backend.
-    """
-    global Payment
-    global Order
-
-    class Payment(PaymentFactory.construct(order=order_class, **kwargs)):
-        objects = PaymentManager()
-        payment_configuration = models.ForeignKey(import_settings_module())
-
-        class Meta:
-            ordering = ('-created_on',)
-            verbose_name = _("Payment")
-            verbose_name_plural = _("Payments")
-
-    Order = order_class
-
-    # Now build models for backends
-
-    backend_models_modules = import_backend_modules('models')
-    for backend_name, models_module in backend_models_modules.items():
-        for model in models_module.build_models(Payment):
-            apps.register_model(backend_name, model)
-    return Payment
-
-
 class PaymentConfigurationBase(models.Model):
     class Meta:
         abstract = True
@@ -179,4 +170,9 @@ class PaymentConfigurationBase(models.Model):
 
     @classmethod
     def get_settings(cls, backend, request):
-        return PaymentConfigurationBase.objects.get(backend=backend)
+        return cls.objects.get(backend=backend)
+
+
+class PaymentConfiguration(PaymentConfigurationBase):
+    class Meta:
+        swappable = swapper.swappable_setting("getpaid", "PaymentConfiguration")

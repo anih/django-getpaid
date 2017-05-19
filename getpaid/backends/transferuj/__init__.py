@@ -1,6 +1,8 @@
 from decimal import Decimal
 import hashlib
 import logging
+
+from django import forms
 from six.moves.urllib.parse import urlencode
 import datetime
 from django.utils.six import text_type
@@ -17,6 +19,11 @@ logger = logging.getLogger('getpaid.backends.transferuj')
 
 
 class PaymentProcessor(PaymentProcessorBase):
+    configuration_options = {
+        'id': forms.IntegerField(label='Transferuj - ID sprzedawcy'),
+        'key': forms.CharField(label='Transferuj - Klucz sprzedawcy'),
+    }
+
     BACKEND = u'getpaid.backends.transferuj'
     BACKEND_NAME = _(u'Transferuj.pl')
     BACKEND_ACCEPTED_CURRENCY = (u'PLN', )
@@ -45,7 +52,7 @@ class PaymentProcessor(PaymentProcessorBase):
             settings_object
     ):
 
-        allowed_ip = settings_object.get_configuration_value('allowed_ip',
+        allowed_ip = PaymentProcessor.get_backend_setting('allowed_ip',
             PaymentProcessor._ALLOWED_IP)
 
         if len(allowed_ip) != 0 and ip not in allowed_ip:
@@ -105,7 +112,7 @@ class PaymentProcessor(PaymentProcessorBase):
         self._build_md5sum(params, settings_object=settings_object)
         self._build_urls(params, settings_object=settings_object)
 
-        method = settings_object.get_configuration_value('method', 'get').lower()
+        method = PaymentProcessor.get_backend_setting('method', 'get').lower()
         if method not in ('post', 'get'):
             raise ImproperlyConfigured(
                 'Transferuj.pl payment backend accepts only GET or POST'
@@ -126,7 +133,7 @@ class PaymentProcessor(PaymentProcessorBase):
                                      order=self.payment.order,
                                      user_data=user_data)
 
-        for lang in (user_data['lang'], settings_object.get_configuration_value('lang', '')):
+        for lang in (user_data['lang'], PaymentProcessor.get_backend_setting('lang', '')):
             if lang and lang.lower() in self._ACCEPTED_LANGS:
                 params['jezyk'] = lang.lower()
                 break
@@ -136,7 +143,7 @@ class PaymentProcessor(PaymentProcessorBase):
         return params
 
     def _build_md5sum(self, params, settings_object):
-        if not settings_object.get_configuration_value('signing', True):
+        if not PaymentProcessor.get_backend_setting('signing', True):
             return params
 
         params['md5sum'] = self.compute_sig(
@@ -149,9 +156,9 @@ class PaymentProcessor(PaymentProcessorBase):
         domain = get_domain()
         online_domain = return_domain = "http"
 
-        if settings_object.get_configuration_value('force_ssl_online', False):
+        if PaymentProcessor.get_backend_setting('force_ssl_online', True):
             online_domain = "https"
-        if settings_object.get_configuration_value('force_ssl_return', False):
+        if PaymentProcessor.get_backend_setting('force_ssl_return', True):
             return_domain = "https"
 
         online_domain = "{}://{}".format(online_domain, domain)

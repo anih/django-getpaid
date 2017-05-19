@@ -1,8 +1,12 @@
+# -*- coding:utf-8 -*-
+
+from __future__ import unicode_literals
 import time
 from decimal import Decimal
 import hashlib
 import logging
 
+from django import forms
 from django.utils import six
 from six.moves.urllib.request import Request, urlopen
 from six.moves.urllib.parse import urlencode
@@ -29,6 +33,13 @@ class PayUTransactionStatus:
 
 
 class PaymentProcessor(PaymentProcessorBase):
+    configuration_options = {
+        'pos_id': forms.IntegerField(label='PayU - Id punktu płatności (pos_id)'),
+        'key1': forms.CharField(label='PayU - Klucz (MD5)'),
+        'key2': forms.CharField(label='PayU - Drugi klucz (MD5)'),
+        'pos_auth_key': forms.CharField(label='PayU - Klucz autoryzacji płatności (pos_auth_key)'),
+    }
+
     BACKEND = u'getpaid.backends.payu'
     BACKEND_NAME = _(u'PayU')
     BACKEND_ACCEPTED_CURRENCY = (u'PLN', )
@@ -116,16 +127,16 @@ class PaymentProcessor(PaymentProcessorBase):
         if user_data['lang'] and \
                 user_data['lang'].lower() in PaymentProcessor._ACCEPTED_LANGS:
             params['language'] = user_data['lang'].lower()
-        elif settings_object.get_configuration_value('lang', False) and \
-                settings_object.get_configuration_value('lang').lower() in \
+        elif PaymentProcessor.get_backend_setting('lang', False) and \
+                        PaymentProcessor.get_backend_setting('lang').lower() in \
                     PaymentProcessor._ACCEPTED_LANGS:
             params['language'] = six.text_type(
-                settings_object.get_configuration_value('lang').lower())
+                PaymentProcessor.get_backend_setting('lang').lower())
 
-        key1 = six.text_type(settings_object.get_configuration_value('key1'))
+        key1 = six.text_type(PaymentProcessor.get_backend_setting('key1'))
 
-        signing = settings_object.get_configuration_value('signing', True)
-        testing = settings_object.get_configuration_value('testing', False)
+        signing = PaymentProcessor.get_backend_setting('signing', True)
+        testing = PaymentProcessor.get_backend_setting('testing', False)
 
         if testing:
             # Switch to testing mode, where payment method is set to "test payment"->"t"
@@ -150,10 +161,10 @@ class PaymentProcessor(PaymentProcessorBase):
             params['sig'] = PaymentProcessor.compute_sig(
                 params, self._REQUEST_SIG_FIELDS, key1)
 
-        if settings_object.get_configuration_value('method', 'get').lower() == 'post':
+        if PaymentProcessor.get_backend_setting('method', 'get').lower() == 'post':
             logger.info(u'New payment using POST: %s' % params)
             return self._GATEWAY_URL + 'UTF/NewPayment', 'POST', params
-        elif settings_object.get_configuration_value('method', 'get').lower() == 'get':
+        elif PaymentProcessor.get_backend_setting('method', 'get').lower() == 'get':
             logger.info(u'New payment using GET: %s' % params)
             for key in params.keys():
                 params[key] = six.text_type(params[key]).encode('utf-8')
