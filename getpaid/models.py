@@ -81,13 +81,16 @@ class Payment(models.Model):
     #     return {'order': models.ForeignKey(order, **kwargs)}
 
     @classmethod
-    def create(cls, order, backend):
+    def create(cls, order, backend, request):
         """
             Builds Payment object based on given Order instance
         """
         payment = Payment()
         payment.order = order
         payment.backend = backend
+        payment_model = swapper.load_model('getpaid', 'PaymentConfiguration')
+        payment_configuration = payment_model.get_settings(backend=backend, request=request)
+        payment.payment_configuration = payment_configuration
         signals.new_payment_query.send(sender=None, order=order, payment=payment)
         if payment.currency is None or payment.amount is None:
             raise NotImplementedError('Please provide a listener for getpaid.signals.new_payment_query')
