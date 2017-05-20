@@ -4,7 +4,7 @@ from django.core.exceptions import ImproperlyConfigured
 from django.template.base import Template
 from django.template.context import Context
 from django.utils import six
-from getpaid.utils import import_settings_module, get_backend_settings
+from getpaid.utils import get_backend_settings
 
 
 class PaymentProcessorBase(object):
