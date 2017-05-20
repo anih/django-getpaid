@@ -12,7 +12,6 @@ from django.utils.encoding import python_2_unicode_compatible
 import swapper
 
 from getpaid import signals
-from .utils import import_backend_modules, import_settings_module
 from django.conf import settings
 
 if six.PY3:

@@ -56,7 +56,7 @@ class NewPaymentView(FormView):
         elif gateway_url_tuple[1].upper() == 'POST':
             context = self.get_context_data()
             context['gateway_url'] = \
-                processor.get_gateway_url(self.request)[0]
+                processor.get_gateway_url(self.request, settings_object=settings_object)[0]
             context['form'] = processor.get_form(gateway_url_tuple[2])
 
             return TemplateResponse(request=self.request,

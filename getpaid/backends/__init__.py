@@ -1,3 +1,4 @@
+import swapper
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from django.template.base import Template
@@ -86,8 +87,8 @@ class PaymentProcessorBase(object):
         If `default` value is omitted, raises ``ImproperlyConfigured`` when
         setting ``name`` is not available.
         """
-        backend_settings = import_settings_module()
-        return backend_settings.get_settings(cls.BACKEND, request)
+        backend_model = swapper.load_model('getpaid', 'PaymentConfiguration')
+        return backend_model.get_settings(cls.BACKEND, request)
 
     @classmethod
     def get_backend_setting(cls, name, default=None):
