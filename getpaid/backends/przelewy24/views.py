@@ -26,7 +26,7 @@ class OnlineView(View):
             logger.warning('Got malformed POST request: %s' % str(request.POST))
             return HttpResponse('MALFORMED', status=500)
 
-        settings_object = PaymentProcessor.get_settings_object()
+        settings_object = PaymentProcessor.get_settings_object(request=request)
         if PaymentProcessor.on_payment_status_change(
                 p24_session_id,
                 p24_order_id,
@@ -59,7 +59,7 @@ class SuccessView(DetailView):
             logger.warning('Got malformed POST request: %s' % str(request.POST))
             return HttpResponse('MALFORMED', status=500)
 
-        settings_object = PaymentProcessor.get_settings_object()
+        settings_object = PaymentProcessor.get_settings_object(request=request)
         PaymentProcessor.on_payment_status_change(
             p24_session_id,
             p24_order_id,
@@ -94,7 +94,7 @@ class FailureView(DetailView):
             logger.warning('Got malformed POST request: %s' % str(request.POST))
             return HttpResponse('MALFORMED', status=500)
 
-        settings_object = PaymentProcessor.get_settings_object()
+        settings_object = PaymentProcessor.get_settings_object(request=request)
         PaymentProcessor.on_payment_status_change(
             p24_session_id,
             p24_order_id,
