@@ -36,7 +36,7 @@ class PaymentProcessor(PaymentProcessorBase):
         payment.description = ipn_obj.item_name
 
         if ipn_obj.payment_status == ST_PP_COMPLETED:
-            business = PaymentProcessor.get_business()
+            business = PaymentProcessor.get_business(settings_object=payment.get_settings_object())
             if ipn_obj.receiver_email != business:
                 # Not a valid payment
                 return
