@@ -2,14 +2,17 @@ import json
 import sys
 from datetime import datetime
 
+import django
 from django.apps import apps
 from django.core.exceptions import ImproperlyConfigured
 from django.db import models
+from django.urls import reverse
 from django.utils import six
 from django.utils.timezone import utc
 from django.utils.translation import ugettext_lazy as _
 from django.utils.encoding import python_2_unicode_compatible
 import swapper
+from getpaid.utils import Site
 
 from getpaid import signals
 from django.conf import settings
@@ -173,6 +176,32 @@ class PaymentConfigurationBase(models.Model):
     @classmethod
     def get_settings(cls, backend, request):
         return cls.objects.get(backend=backend)
+
+    def get_domain(self, request=None):
+        if (hasattr(settings, 'GETPAID_SITE_DOMAIN') and
+                settings.GETPAID_SITE_DOMAIN):
+            return settings.GETPAID_SITE_DOMAIN
+        if django.VERSION[:2] >= (1, 8):
+            site = Site.objects.get_current(request=request)
+        else:
+            site = Site.objects.get_current()
+
+        return site.domain
+
+    def build_absolute_uri(self, view_name, scheme='https', domain=None,
+                           reverse_args=None, reverse_kwargs=None):
+        if not reverse_args:
+            reverse_args = ()
+        if not reverse_kwargs:
+            reverse_kwargs = {}
+        if domain is None:
+            domain = self.get_domain()
+
+        path = reverse(view_name, args=reverse_args, kwargs=reverse_kwargs)
+        domain = domain.rstrip('/')
+        path = path.lstrip('/')
+
+        return u"{0}://{1}/{2}".format(scheme, domain, path)
 
 
 class PaymentConfiguration(PaymentConfigurationBase):

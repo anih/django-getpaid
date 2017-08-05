@@ -12,7 +12,6 @@ from django.utils.timezone import utc
 from django.utils.translation import ugettext_lazy as _
 from getpaid import signals
 from getpaid.backends import PaymentProcessorBase
-from getpaid.utils import get_domain
 
 logger = logging.getLogger('getpaid.backends.dotpay')
 
@@ -97,19 +96,19 @@ class PaymentProcessor(PaymentProcessorBase):
 
         return u'OK'
 
-    def get_URLC(self):
+    def get_URLC(self, settings_object):
         urlc = reverse('getpaid-dotpay-online')
         if PaymentProcessor.get_backend_setting('force_ssl', True):
-            return u'https://%s%s' % (get_domain(), urlc)
+            return u'https://%s%s' % (settings_object.get_domain(), urlc)
         else:
-            return u'http://%s%s' % (get_domain(), urlc)
+            return u'http://%s%s' % (settings_object.get_domain(), urlc)
 
-    def get_URL(self, pk):
+    def get_URL(self, settings_object, pk):
         url = reverse('getpaid-dotpay-return', kwargs={'pk': pk})
         if PaymentProcessor.get_backend_setting('force_ssl', True):
-            return u'https://%s%s' % (get_domain(), url)
+            return u'https://%s%s' % (settings_object.get_domain(), url)
         else:
-            return u'http://%s%s' % (get_domain(), url)
+            return u'http://%s%s' % (settings_object.get_domain(), url)
 
     def get_gateway_url(self, request, settings_object):
         """
@@ -122,8 +121,8 @@ class PaymentProcessor(PaymentProcessorBase):
             'currency': self.payment.currency,
             'type': 0,  # show "return" button after finished payment
             'control': self.payment.pk,
-            'URL': self.get_URL(self.payment.pk),
-            'URLC': self.get_URLC(),
+            'URL': self.get_URL(pk=self.payment.pk, settings_object=settings_object),
+            'URLC': self.get_URLC(settings_object=settings_object),
         }
 
         user_data = {

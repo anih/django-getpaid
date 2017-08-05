@@ -96,15 +96,3 @@ def qs_to_ordered_params(query_string):
             field = field.decode('utf8')
         params[field] = value
     return params
-
-
-def get_domain(request=None):
-    if (hasattr(settings, 'GETPAID_SITE_DOMAIN') and
-            settings.GETPAID_SITE_DOMAIN):
-        return settings.GETPAID_SITE_DOMAIN
-    if django.VERSION[:2] >= (1, 8):
-        site = Site.objects.get_current(request=request)
-    else:
-        site = Site.objects.get_current()
-
-    return site.domain

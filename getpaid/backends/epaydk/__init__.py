@@ -10,7 +10,6 @@ from django.utils.translation import get_language_from_request
 from django.apps import apps
 from django.core.exceptions import ImproperlyConfigured
 from django.utils.six.moves.urllib.parse import urlencode
-from getpaid.utils import get_domain
 
 # FIXME: commit_on_success is not exactly what I would want here...
 try:
@@ -19,7 +18,6 @@ except ImportError:
     from django.db.transaction import atomic as commit_on_success_or_atomic
 
 from getpaid.backends import PaymentProcessorBase
-from getpaid.utils import build_absolute_uri
 from getpaid import signals
 
 
@@ -197,21 +195,21 @@ class PaymentProcessor(PaymentProcessorBase):
         params['language'] = self._get_language_id(request, prefered=prefered)
 
         url_data = {
-            'domain': get_domain(request=request),
+            'domain': settings_object.get_domain(request=request),
             'scheme': request.scheme
         }
 
-        params['accepturl'] = build_absolute_uri('getpaid-epaydk-success',
+        params['accepturl'] = settings_object.build_absolute_uri('getpaid-epaydk-success',
                                                  **url_data)
 
         if not settings_object.get_configuration_value('callback_secret_path', ''):
-            params['callbackurl'] = build_absolute_uri(
+            params['callbackurl'] = settings_object.build_absolute_uri(
                 'getpaid-epaydk-online', **url_data
             )
 
-        params['cancelurl'] = build_absolute_uri('getpaid-epaydk-failure',
+        params['cancelurl'] = settings_object.build_absolute_uri('getpaid-epaydk-failure',
                                                  **url_data)
-        params['hash'] = PaymentProcessor.compute_hash(params)
+        params['hash'] = PaymentProcessor.compute_hash(params, settings_object=settings_object)
 
         url = u"{}?{}".format(self.BACKEND_GATEWAY_BASE_URL, urlencode(params))
         return (url, 'GET', {})

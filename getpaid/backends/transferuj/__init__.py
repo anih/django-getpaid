@@ -13,7 +13,6 @@ from django.utils.timezone import utc
 from django.utils.translation import ugettext_lazy as _
 from getpaid import signals
 from getpaid.backends import PaymentProcessorBase
-from getpaid.utils import get_domain
 
 logger = logging.getLogger('getpaid.backends.transferuj')
 
@@ -153,7 +152,7 @@ class PaymentProcessor(PaymentProcessorBase):
         return params
 
     def _build_urls(self, params, settings_object):
-        domain = get_domain()
+        domain = settings_object.get_domain()
         online_domain = return_domain = "http"
 
         if PaymentProcessor.get_backend_setting('force_ssl_online', True):

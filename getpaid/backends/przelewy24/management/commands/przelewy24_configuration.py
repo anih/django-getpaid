@@ -1,14 +1,13 @@
 from django.core.management.base import BaseCommand
 from django.core.urlresolvers import reverse
 from getpaid.backends.przelewy24 import PaymentProcessor
-from getpaid.utils import get_domain
 
 
 class Command(BaseCommand):
     help = 'Additional Przelewy24 configuration'
 
     def handle(self, *args, **options):
-        current_site = get_domain()
+        current_site = settings_object.get_domain()
         settings_object = PaymentProcessor.get_settings_object()
 
         self.stdout.write(

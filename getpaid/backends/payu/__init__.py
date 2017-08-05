@@ -133,7 +133,7 @@ class PaymentProcessor(PaymentProcessorBase):
             params['language'] = six.text_type(
                 PaymentProcessor.get_backend_setting('lang').lower())
 
-        key1 = six.text_type(PaymentProcessor.get_backend_setting('key1'))
+        key1 = six.text_type(settings_object.get_configuration_value('key1'))
 
         signing = PaymentProcessor.get_backend_setting('signing', True)
         testing = PaymentProcessor.get_backend_setting('testing', False)

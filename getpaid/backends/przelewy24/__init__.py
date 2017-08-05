@@ -24,7 +24,6 @@ from pytz import utc
 from getpaid import signals
 from getpaid.backends import PaymentProcessorBase
 from getpaid.backends.przelewy24.tasks import get_payment_status_task
-from getpaid.utils import get_domain
 
 logger = logging.getLogger('getpaid.backends.przelewy24')
 
@@ -157,7 +156,7 @@ class PaymentProcessor(PaymentProcessorBase):
         params['p24_crc'] = self.compute_sig(params, self._REQUEST_SIG_FIELDS,
                                              settings_object.get_configuration_value('crc'))
 
-        current_site = get_domain()
+        current_site = settings_object.get_domain()
         use_ssl = PaymentProcessor.get_backend_setting('ssl_return', True)
 
         params['p24_return_url_ok'] = ('https://' if use_ssl else 'http://') + current_site + reverse(

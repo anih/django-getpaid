@@ -10,7 +10,6 @@ from django.utils.translation import ugettext_lazy as _
 
 from getpaid import signals
 from getpaid.backends import PaymentProcessorBase
-from getpaid.utils import get_domain
 
 logger = logging.getLogger('getpaid.backends.paypal')
 
@@ -59,10 +58,10 @@ class PaymentProcessor(PaymentProcessorBase):
         else:
             logger.error('paypal: unknown status %s' % ipn_obj.payment_status)
 
-    def get_return_url(self, type, pk=None):
+    def get_return_url(self, settings_object, type, pk=None):
         kwargs = {'pk': pk} if pk else {}
         url = reverse('getpaid-paypal-%s' % type, kwargs=kwargs)
-        domain = get_domain()
+        domain = settings_object.get_domain()
         if PaymentProcessor.get_backend_setting('force_ssl', True):
             return 'https://%s%s' % (domain, url)
         else:
@@ -98,10 +97,10 @@ class PaymentProcessor(PaymentProcessorBase):
             'currency_code': self.payment.currency.upper(),
             'item_name': self.get_order_description(self.payment, self.payment.order),
             # "invoice": "unique-invoice-id",
-            "notify_url": self.get_return_url('online'),
-            "return_url": self.get_return_url('success', pk=self.payment.pk),
-            "return": self.get_return_url('success', pk=self.payment.pk),
-            'cancel_return': self.get_return_url('failure', pk=self.payment.pk),
+            "notify_url": self.get_return_url(settings_object=settings_object, type='online'),
+            "return_url": self.get_return_url(settings_object=settings_object, type='success', pk=self.payment.pk),
+            "return": self.get_return_url(settings_object=settings_object, type='success', pk=self.payment.pk),
+            'cancel_return': self.get_return_url(settings_object=settings_object, type='failure', pk=self.payment.pk),
             'custom': self.payment.pk,
         }
         return self._get_gateway_url, 'POST', paypal_dict

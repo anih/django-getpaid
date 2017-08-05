@@ -127,7 +127,7 @@ class PaymentProcessor(PaymentProcessorBase):
         logger.debug('currency suffix: %s' % currency_suffix)
         return currency_suffix
 
-    def get_return_url(self, type, settings_object, pk):
+    def get_return_url(self, settings_object, type, pk):
         kwargs = {'pk': pk} if pk else {}
         url = reverse('getpaid-skrill-%s' % type, kwargs=kwargs)
         current_site = Site.objects.get_current()
@@ -199,10 +199,10 @@ class PaymentProcessor(PaymentProcessorBase):
 
         # urls
         # params['logo_url'] = PaymentProcessor.get_backend_setting('logo_url);
-        params['return_url'] = self.get_return_url('success', pk=self.payment.pk, settings_object=settings_object)
+        params['return_url'] = self.get_return_url(type='success', pk=self.payment.pk, settings_object=settings_object)
         params['return_url_target'] = '_top'
-        params['cancel_url'] = self.get_return_url('failure', pk=self.payment.pk, settings_object=settings_object)
+        params['cancel_url'] = self.get_return_url(type='failure', pk=self.payment.pk, settings_object=settings_object)
         params['cancel_url_target'] = '_top'
-        params['status_url'] = self.get_return_url('online', settings_object=settings_object, pk=None)
+        params['status_url'] = self.get_return_url(type='online', settings_object=settings_object, pk=None)
         logger.debug('sending payment to skrill: %s' % str(params))
         return self._GATEWAY_URL, 'POST', params
