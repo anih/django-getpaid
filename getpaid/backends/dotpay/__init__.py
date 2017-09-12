@@ -17,11 +17,10 @@ logger = logging.getLogger('getpaid.backends.dotpay')
 
 
 class DotpayTransactionStatus:
-    STARTED = 1
-    FINISHED = 2
-    REJECTED = 3
-    REFUNDED = 4
-    RECLAMATION = 5
+    STARTED = 'new'
+    PROCESSING = 'processing'
+    FINISHED = 'completed'
+    REJECTED = 'rejected'
 
 
 class PaymentProcessor(PaymentProcessorBase):
@@ -39,24 +38,27 @@ class PaymentProcessor(PaymentProcessorBase):
     _ALLOWED_IP = ('195.150.9.37', )
     _ACCEPTED_LANGS = ('pl', 'en', 'de', 'it', 'fr', 'es', 'cz', 'ru', 'bg')
     _GATEWAY_URL = 'https://ssl.dotpay.pl/t2/'
-    _ONLINE_SIG_FIELDS = ('id', 'control', 't_id', 'amount', 'email', 'service', 'code', 'username', 'password', 't_status')
+    _ONLINE_SIG_FIELDS = (
+        'id', 'operation_number', 'operation_type', 'operation_status',
+        'operation_amount', 'operation_currency', 'operation_withdrawal_amount',
+        'operation_commission_amount', 'is_completed', 'operation_original_amount',
+        'operation_original_currency', 'operation_datetime', 'operation_related_number', 'control',
+        'description', 'email', 'p_info', 'p_email', 'credit_card_issuer_identification_number',
+        'credit_card_masked_number', 'credit_card_brand_codename', 'credit_card_brand_code',
+        'credit_card_id', 'channel', 'channel_country', 'geoip_country'
+    )
 
     @staticmethod
     def compute_sig(params, fields, PIN):
-        text = PIN + ":" + (u":".join(map(lambda field: params.get(field, ''), fields)))
-        return hashlib.md5(text.encode('utf8')).hexdigest()
+        text = PIN + ''.join(map(lambda field: params.get(field, ''), fields))
+        return hashlib.sha256(text.encode('utf8')).hexdigest()
 
     @staticmethod
     def online(params, ip, settings_object):
-        allowed_ip = PaymentProcessor.get_backend_setting('allowed_ip', PaymentProcessor._ALLOWED_IP)
-
-        if len(allowed_ip) != 0 and ip not in allowed_ip:
-            logger.warning('Got message from not allowed IP %s' % str(allowed_ip))
-            return 'IP ERR'
-
         PIN = settings_object.get_configuration_value('PIN', '')
 
-        if params['md5'] != PaymentProcessor.compute_sig(params, PaymentProcessor._ONLINE_SIG_FIELDS, PIN):
+        if params['signature'] != PaymentProcessor.compute_sig(params, PaymentProcessor._ONLINE_SIG_FIELDS, PIN):
+            print 'Got message with wrong sig, %s' % str(params)
             logger.warning('Got message with wrong sig, %s' % str(params))
             return u'SIG ERR'
 
@@ -74,16 +76,17 @@ class PaymentProcessor(PaymentProcessorBase):
             logger.error('Got message for non existing Payment, %s' % str(params))
             return u'PAYMENT ERR'
 
-        amount, currency = params.get('orginal_amount', params['amount'] + ' PLN').split(' ')
+        amount = params.get('operation_original_amount', params['operation_amount'])
+        currency = params.get('operation_original_currency', params['operation_currency'])
 
         if currency != payment.currency.upper():
             logger.error('Got message with wrong currency, %s' % str(params))
             return u'CURRENCY ERR'
 
-        payment.external_id = params.get('t_id', '')
+        payment.external_id = params.get('operation_number', '')
         payment.description = params.get('email', '')
 
-        if int(params['t_status']) == DotpayTransactionStatus.FINISHED:
+        if params['operation_status'] == DotpayTransactionStatus.FINISHED:
             payment.amount_paid = Decimal(amount)
             payment.paid_on = datetime.datetime.utcnow().replace(tzinfo=utc)
             if payment.amount <= Decimal(amount):
@@ -91,7 +94,7 @@ class PaymentProcessor(PaymentProcessorBase):
                 payment.change_status('paid')
             else:
                 payment.change_status('partially_paid')
-        elif int(params['t_status']) in [DotpayTransactionStatus.REJECTED, DotpayTransactionStatus.RECLAMATION, DotpayTransactionStatus.REFUNDED]:
+        elif params['operation_status'] == DotpayTransactionStatus.REJECTED:
             payment.change_status('failed')
 
         return u'OK'
