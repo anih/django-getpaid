@@ -2,7 +2,7 @@
 
 from decimal import Decimal
 
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.apps import apps
 from django.test import TestCase
 from django.test.client import Client

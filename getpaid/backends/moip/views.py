@@ -1,5 +1,5 @@
 import logging
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.http import HttpResponse, Http404, HttpResponseRedirect
 from django.views.generic import DetailView
 from django.views.generic.base import View

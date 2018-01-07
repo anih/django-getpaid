@@ -4,7 +4,7 @@ from mock import Mock, patch
 from hashlib import md5
 
 from django.apps import apps
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.test import TestCase
 from django.utils import six
 from django.core.exceptions import ImproperlyConfigured
