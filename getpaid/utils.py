@@ -6,7 +6,7 @@ from importlib import import_module
 from django.apps import apps
 from django.conf import settings
 from django.utils import six
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.utils.functional import SimpleLazyObject
 from django.utils.six.moves.urllib.parse import parse_qsl
 import django

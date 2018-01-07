@@ -5,7 +5,7 @@ from six.moves.urllib.parse import urlencode
 import datetime
 from django.utils.six import text_type
 from django.core.exceptions import ImproperlyConfigured
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.apps import apps
 from django.utils.timezone import utc
 from django.utils.translation import ugettext_lazy as _
