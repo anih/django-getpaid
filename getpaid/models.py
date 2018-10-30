@@ -71,9 +71,14 @@ class Payment(models.Model):
     external_id = models.CharField(_("external id"), max_length=64, blank=True, null=True)
     description = models.CharField(_("description"), max_length=128, blank=True, null=True)
 
-    order = models.ForeignKey(swapper.get_model_name('getpaid', 'Order'), related_name='payments')
-    payment_configuration = models.ForeignKey(swapper.get_model_name('getpaid', 'PaymentConfiguration'))
-
+    order = models.ForeignKey(
+        swapper.get_model_name('getpaid', 'Order'), related_name='payments',
+        on_delete=models.PROTECT,
+    )
+    payment_configuration = models.ForeignKey(
+        swapper.get_model_name('getpaid', 'PaymentConfiguration'),
+        on_delete=models.PROTECT,
+    )
 
     def __str__(self):
         return _("Payment #%(id)d") % {'id': self.id}

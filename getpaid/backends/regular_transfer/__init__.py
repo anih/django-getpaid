@@ -1,5 +1,7 @@
 # -*- coding:utf-8 -*-
 from importlib import import_module
+
+import six
 from django.core.exceptions import ImproperlyConfigured
 from django.utils.translation import ugettext_lazy as _
 from getpaid.backends import PaymentProcessorBase
@@ -18,6 +20,6 @@ class PaymentProcessor(PaymentProcessorBase):
         module_name = PaymentProcessor.get_backend_setting('module_name')
         module = import_module(module_name)
         url = module.get_regular_transfer_url(self.payment)
-        if not isinstance(url, basestring):
+        if not isinstance(url, six.string_types):
             raise ImproperlyConfigured('Regular transfer backend have wrong url class in config')
         return url, 'GET', {}

@@ -1,6 +1,7 @@
 # -*- coding:utf-8 -*-
 from importlib import import_module
 
+import six
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from django.utils.translation import ugettext_lazy as _
@@ -20,6 +21,6 @@ class PaymentProcessor(PaymentProcessorBase):
         module_name = PaymentProcessor.get_backend_setting('module_name')
         module = import_module(module_name)
         url = module.get_cod_url(self.payment)
-        if not isinstance(url, basestring):
+        if not isinstance(url, six.string_types):
             raise ImproperlyConfigured('COD backend have wrong url class in config')
         return url, 'GET', {}

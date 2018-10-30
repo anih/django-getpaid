@@ -7,7 +7,7 @@ from django import forms
 from django.utils import six
 from six.moves.urllib.parse import urlencode
 from django.core.exceptions import ImproperlyConfigured
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.utils.timezone import utc
 from django.utils.translation import ugettext_lazy as _
 from getpaid import signals
@@ -58,7 +58,7 @@ class PaymentProcessor(PaymentProcessorBase):
         PIN = settings_object.get_configuration_value('PIN', '')
 
         if params['signature'] != PaymentProcessor.compute_sig(params, PaymentProcessor._ONLINE_SIG_FIELDS, PIN):
-            print 'Got message with wrong sig, %s' % str(params)
+            print('Got message with wrong sig, %s' % str(params))
             logger.warning('Got message with wrong sig, %s' % str(params))
             return u'SIG ERR'
 

@@ -18,7 +18,7 @@ Welcome to django-getpaid!
     :target: https://pypi.python.org/pypi/django-getpaid
 .. image:: https://d2weczhvl823v0.cloudfront.net/cypreess/django-getpaid/trend.png
     :target: https://bitdeli.com/free
-   
+
 Documentation: http://django-getpaid.readthedocs.org/en/latest/
 
 **django-getpaid** is carefully designed **multi-broker payment processor for Django** framework. It was designed
@@ -76,7 +76,7 @@ First of all you need a model that will represent an order in you application. I
 complicated the model is or what fields does it provide, be it single item order, or multiple items order.
 Let's take an example from test project::
 
-    from django.core.urlresolvers import reverse
+    from django.urls import reverse
     from django.db import models
     import getpaid
 
@@ -93,7 +93,7 @@ Let's take an example from test project::
             return self.name
 
     Payment = getpaid.register_to_payment(Order, unique=False, related_name='payments')
-    
+
 
 For django >=1.7 please add the following line to your settings:
 
