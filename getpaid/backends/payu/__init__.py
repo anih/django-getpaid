@@ -3,6 +3,7 @@ from decimal import Decimal
 import hashlib
 import logging
 
+import requests
 from django.utils import six
 from six.moves.urllib.request import Request, urlopen
 from six.moves.urllib.parse import urlencode
@@ -178,12 +179,9 @@ class PaymentProcessor(PaymentProcessorBase):
         for key in params.keys():
             params[key] = six.text_type(params[key]).encode('utf-8')
 
-        data = six.text_type(urlencode(params)).encode('utf-8')
         url = self._GATEWAY_URL + 'UTF/Payment/get/txt'
-        request = Request(url, data)
-        response = urlopen(request)
-        response_data = response.read().decode('utf-8')
-        response_params = PaymentProcessor._parse_text_response(response_data)
+        response = requests.post(url, params)
+        response_params = PaymentProcessor._parse_text_response(response.content)
 
         if not response_params['status'] == u'OK':
             logger.warning(u'Payment status error: %s' % response_params)
