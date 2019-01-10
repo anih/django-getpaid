@@ -11,10 +11,9 @@ import logging
 import time
 import datetime
 
+import requests
 from django import forms
 from django.utils import six
-from six.moves.urllib.request import Request, urlopen
-from six.moves.urllib.parse import urlencode
 
 from django.core.exceptions import ImproperlyConfigured
 from django.urls import reverse
@@ -89,19 +88,16 @@ class PaymentProcessor(PaymentProcessorBase):
         for key in params.keys():
             params[key] = six.text_type(params[key]).encode('utf-8')
 
-        data = urlencode(params)
-
         url = self._GATEWAY_CONFIRM_URL
         self.payment.external_id = p24_order_id
 
-        request = Request(url, data)
         try:
-            response = urlopen(request).read().decode('utf8')
+            response = requests.post(url, params)
         except Exception:
             logger.exception('Error while getting payment status change %s data=%s' % (url, str(params)))
             return
 
-        response_list = list(filter(lambda ll: ll, map(lambda li: li.strip(), response.splitlines())))
+        response_list = list(filter(lambda ll: ll, map(lambda li: li.strip(), response.content.splitlines())))
 
         if len(response_list) >= 2 and response_list[0] == 'RESULT' and response_list[1] == 'TRUE':
             logger.info('Payment accepted %s' % str(params))

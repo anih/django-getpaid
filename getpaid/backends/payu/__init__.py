@@ -191,10 +191,8 @@ class PaymentProcessor(PaymentProcessorBase):
 
         data = six.text_type(urlencode(params)).encode('utf-8')
         url = self._GATEWAY_URL + 'UTF/Payment/get/txt'
-        request = Request(url, data)
-        response = urlopen(request)
-        response_data = response.read().decode('utf-8')
-        response_params = PaymentProcessor._parse_text_response(response_data)
+        response = requests.post(url, params)
+        response_params = PaymentProcessor._parse_text_response(response.content)
 
         if not response_params['status'] == u'OK':
             logger.warning(u'Payment status error: %s' % response_params)
