@@ -97,8 +97,9 @@ class PaymentProcessor(PaymentProcessorBase):
             logger.exception('Error while getting payment status change %s data=%s' % (url, str(params)))
             return
 
-        response_list = list(filter(lambda ll: ll, map(lambda li: li.strip(), response.content.splitlines())))
-
+        response_list = list(filter(lambda ll: ll, map(lambda li: li.strip(), response.text.splitlines())))
+        print(response_list)
+        print(response.content)
         if len(response_list) >= 2 and response_list[0] == 'RESULT' and response_list[1] == 'TRUE':
             logger.info('Payment accepted %s' % str(params))
             self.payment.amount_paid = Decimal(p24_kwota) / Decimal('100')

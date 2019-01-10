@@ -192,7 +192,7 @@ class PaymentProcessor(PaymentProcessorBase):
 
         url = self._GATEWAY_URL + 'UTF/Payment/get/txt'
         response = requests.post(url, params)
-        response_params = PaymentProcessor._parse_text_response(response.content)
+        response_params = PaymentProcessor._parse_text_response(response.text)
 
         if not response_params['status'] == u'OK':
             logger.warning(u'Payment status error: %s' % response_params)
